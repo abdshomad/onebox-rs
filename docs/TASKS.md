@@ -33,7 +33,7 @@ This document contains the complete list of tasks required to implement the oneb
 
 | ID | Task Description | Related SRS | Related Tests | Status | Priority |
 |----|------------------|--------------|---------------|---------|----------|
-| **T8** | **E2E Ping Tunnel**: Connect the client and server TUNs. Read a packet from the client TUN, send it to the server, and write it to the server TUN. Make `ping 8.8.8.8` succeed. | FR-C-02, FR-S-04 | TS1.1, TS1.2, TS1.3 | `To Do` | High |
+| **T8** | **E2E Ping Tunnel**: Connect the client and server TUNs. Read a packet from the client TUN, send it to the server, and write it to the server TUN. Make `ping 8.8.8.8` succeed. | FR-C-02, FR-S-04 | TS1.1, TS1.2, TS1.3 | `Done` | High |
 | **T9** | **Multi-Link Socket Binding**: In `onebox-client`, implement logic to discover all WAN interfaces and bind a dedicated UDP socket to each one. | FR-C-03, FR-C-04 | N/A | `To Do` | High |
 | **T10** | **Packet Distribution**: Implement a round-robin algorithm in the client to distribute outgoing packets across all active WAN sockets. | FR-C-06 | TS1.4 | `To Do` | High |
 | **T11** | **Sequencing & Reassembly**: Add a monotonic sequence number to the protocol header. Implement a reordering jitter buffer on the server. | FR-C-05, FR-S-03 | N/A | `To Do` | High |

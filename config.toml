@@ -1,14 +1,14 @@
 # Simplified onebox-rs Configuration File
 # This file contains the minimal configuration required by the SRS (SI-2).
 
-log_level = "info"
+log_level = "debug"
 preshared_key = "your-secure-pre-shared-key-here"
 
 [client]
-server_address = "198.51.100.1" # Public IP of the onebox-server
+server_address = "127.0.0.1" # Public IP of the onebox-server
 server_port = 51820
-tun_name = "onebox0"
-tun_ip = "10.8.0.1"
+tun_name = "tun_client"
+tun_ip = "10.99.99.2"
 tun_netmask = "255.255.255.0"
 
 [server]
