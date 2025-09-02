@@ -3,6 +3,10 @@
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
+/// Unique identifier for a client
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub struct ClientId(pub u128);
+
 /// Network interface information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkInterface {
@@ -92,6 +96,42 @@ impl Default for LinkHealth {
             last_success: None,
             consecutive_failures: 0,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn client_id_default_is_zero() {
+        let id = ClientId::default();
+        assert_eq!(id.0, 0);
+    }
+
+    #[test]
+    fn link_health_defaults_are_sane() {
+        let h = LinkHealth::default();
+        assert_eq!(h.status, LinkStatus::Up);
+        assert!(h.rtt_ms.is_none());
+        assert!(h.packet_loss.is_none());
+        assert!(h.last_success.is_none());
+        assert_eq!(h.consecutive_failures, 0);
+    }
+
+    #[test]
+    fn link_config_defaults_are_sane() {
+        let c = LinkConfig::default();
+        match c.local_addr.ip() {
+            IpAddr::V4(v4) => assert_eq!(v4, Ipv4Addr::UNSPECIFIED),
+            _ => panic!("expected IPv4 unspecified"),
+        }
+        match c.remote_addr.ip() {
+            IpAddr::V4(v4) => assert_eq!(v4, Ipv4Addr::UNSPECIFIED),
+            _ => panic!("expected IPv4 unspecified"),
+        }
+        assert_eq!(c.priority, 100);
+        assert!(c.enabled);
     }
 }
 
