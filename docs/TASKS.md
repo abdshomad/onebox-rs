@@ -15,7 +15,7 @@ This document contains the complete list of tasks required to implement the oneb
 
 | ID | Task Description | Related SRS | Related Tests | Status | Priority |
 |----|------------------|--------------|---------------|---------|----------|
-| **T0** | **Project Scaffolding**: Create a Cargo workspace with `onebox-core` (lib), `onebox-client` (bin), and `onebox-server` (bin). Add initial dependencies (`tokio`, `tracing`, `nix`, `clap`, `serde`, `tokio-tun`). | C-1 | N/A | `To Do` | High |
+| **T0** | **Project Scaffolding**: Create a Cargo workspace with `onebox-core` (lib), `onebox-client` (bin), and `onebox-server` (bin). Add initial dependencies (`tokio`, `tracing`, `nix`, `clap`, `serde`, `tokio-tun`). | C-1 | N/A | `Done` | High |
 | **T1** | **Core Data Structures**: In `onebox-core`, define the `PacketHeader` (with sequence number placeholder) and other core data structures. | FR-C-05 | N/A | `To Do` | High |
 | **T2** | **Configuration System**: Implement configuration loading from `config.toml` for both client and server using `serde`. | SI-2 | N/A | `To Do` | High |
 | **T3** | **CLI Framework**: Implement the basic CLI structure for both client and server using `clap`. | UI-1 to UI-5 | N/A | `To Do` | Medium |

@@ -1,0 +1,48 @@
+# onebox-rs Configuration File
+
+[global]
+log_level = "info"
+config_path = "config.toml"
+
+[client]
+# Client TUN interface configuration
+[client.tun]
+name = "onebox0"
+ip = "10.0.0.2"
+netmask = "255.255.255.0"
+mtu = 1500
+
+# Server connection settings
+[client.server]
+address = "127.0.0.1:8080"
+timeout = 30
+keepalive = 60
+
+# Health monitoring settings
+[client.health]
+probe_interval = 10
+probe_timeout = 5
+failure_threshold = 3
+
+# Authentication settings
+[client.auth]
+psk = "your-secure-pre-shared-key-here"
+encryption = "ChaCha20Poly1305"
+
+[server]
+# Server TUN interface configuration
+[server.tun]
+name = "onebox0"
+ip = "10.0.0.1"
+netmask = "255.255.255.0"
+mtu = 1500
+
+# Network binding settings
+[server.network]
+bind_address = "0.0.0.0:8080"
+max_connections = 1000
+
+# Authentication settings
+[server.auth]
+psk = "your-secure-pre-shared-key-here"
+encryption = "ChaCha20Poly1305"

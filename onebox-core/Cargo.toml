@@ -1,0 +1,16 @@
+[package]
+name = "onebox-core"
+version = "0.1.0"
+edition = "2021"
+description = "Core library for onebox-rs internet bonding solution"
+license = "MIT"
+
+[dependencies]
+tokio = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+nix = { workspace = true }
+toml = "0.8"

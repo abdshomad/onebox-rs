@@ -1,0 +1,91 @@
+# Rust build artifacts
+target/
+**/target/
+
+# Cargo lock file (uncomment if you want to ignore it)
+# Cargo.lock
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Backup files
+*.bak
+*.backup
+
+# Configuration files with sensitive data (uncomment if needed)
+# config.local.toml
+# .env.production
+
+# Test artifacts
+test-results/
+test-output/
+
+# Documentation build artifacts
+docs/_build/
+docs/build/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Local development files
+local/
+dev/
