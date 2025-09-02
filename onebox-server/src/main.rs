@@ -4,9 +4,12 @@ use clap::{Parser, Subcommand};
 use onebox_core::prelude::*;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::process::Command;
+use std::sync::Arc;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UdpSocket;
+use tokio::sync::Mutex;
 use tokio_tun::TunBuilder;
-use tracing::{error, info, Level};
+use tracing::{debug, error, info, Level};
 
 #[derive(Parser)]
 #[command(name = "onebox-server")]
@@ -112,17 +115,16 @@ async fn main() -> anyhow::Result<()> {
                 .expect("Failed to parse TUN netmask");
 
             info!("Creating TUN device 'onebox0'...");
-            let _tun = match TunBuilder::new()
+            let tun = match TunBuilder::new()
                 .name("onebox0")
                 .tap(false) // Use TUN mode
                 .packet_info(false) // No extra packet info header
                 .up() // Bring the interface up
                 .address(tun_ip)
                 .netmask(tun_netmask)
-                .try_build_mq(1)
+                .try_build()
             {
-                Ok(mut tuns) => {
-                    let tun = tuns.pop().unwrap();
+                Ok(tun) => {
                     info!("TUN device 'onebox0' created successfully.");
                     info!("IP: 10.99.99.1, Netmask: 255.255.255.0");
                     tun
@@ -170,21 +172,76 @@ async fn main() -> anyhow::Result<()> {
 
             info!("UDP server listening on {}", bind_addr);
 
-            let mut buffer = vec![0u8; 2048];
-            loop {
-                match socket.recv_from(&mut buffer).await {
-                    Ok((len, peer)) => {
-                        info!("Received {} bytes from {}", len, peer);
-                        if len > 0 {
-                            let preview = String::from_utf8_lossy(&buffer[..len]);
-                            info!("Data (utf8-lossy preview): {}", preview);
+            // Split TUN device into reader and writer
+            let (mut tun_reader, mut tun_writer) = tokio::io::split(tun);
+
+            // Create a shared state for the client address
+            let client_addr = Arc::new(Mutex::new(None::<SocketAddr>));
+
+            // Create Arc for the socket to share between tasks
+            let socket = Arc::new(socket);
+
+            // Task 1: UDP -> TUN
+            let udp_to_tun_socket = socket.clone();
+            let client_addr_writer = client_addr.clone();
+            let udp_to_tun = tokio::spawn(async move {
+                let mut buf = [0u8; 2048];
+                loop {
+                    match udp_to_tun_socket.recv_from(&mut buf).await {
+                        Ok((len, peer)) => {
+                            debug!("Received {} bytes from {}", len, peer);
+                            // Update the client address
+                            *client_addr_writer.lock().await = Some(peer);
+                            // Write the packet to the TUN interface
+                            if let Err(e) = tun_writer.write_all(&buf[..len]).await {
+                                error!("Error writing to TUN: {}", e);
+                                break;
+                            }
+                            debug!("Wrote {} bytes to TUN", len);
+                        }
+                        Err(e) => {
+                            error!("UDP receive error: {}", e);
+                            break;
                         }
                     }
-                    Err(e) => {
-                        error!("UDP receive error: {}", e);
-                        break;
+                }
+            });
+
+            // Task 2: TUN -> UDP
+            let tun_to_udp_socket = socket.clone();
+            let client_addr_reader = client_addr.clone();
+            let tun_to_udp = tokio::spawn(async move {
+                let mut buf = [0u8; 2048];
+                loop {
+                    match tun_reader.read(&mut buf).await {
+                        Ok(len) => {
+                            debug!("Read {} bytes from TUN", len);
+                            if let Some(peer) = *client_addr_reader.lock().await {
+                                // Send the packet to the client
+                                if let Err(e) = tun_to_udp_socket.send_to(&buf[..len], peer).await {
+                                    error!("Error sending to UDP: {}", e);
+                                    break;
+                                }
+                                debug!("Sent {} bytes to {}", len, peer);
+                            }
+                            // If client_addr is None, we just drop the packet
+                        }
+                        Err(e) => {
+                            error!("TUN read error: {}", e);
+                            break;
+                        }
                     }
                 }
+            });
+
+            // Wait for either task to complete
+            tokio::select! {
+                _ = udp_to_tun => {
+                    info!("UDP->TUN task finished.");
+                },
+                _ = tun_to_udp => {
+                    info!("TUN->UDP task finished.");
+                },
             }
         }
 
