@@ -2,6 +2,7 @@
 
 use clap::{Parser, Subcommand};
 use onebox_core::prelude::*;
+use tokio::net::UdpSocket;
 use tracing::{error, info, Level};
 
 #[derive(Parser)]
@@ -76,8 +77,21 @@ async fn main() -> anyhow::Result<()> {
             if foreground {
                 info!("Running in foreground mode");
             }
-            // TODO: Implement client startup logic
-            info!("Client startup not yet implemented");
+            // Basic UDP client: send a Hello Onebox message to server
+            let server_addr = config.client.server.address;
+            info!("Sending test datagram to server at {}", server_addr);
+
+            // Bind to an ephemeral local UDP port
+            let local_socket = UdpSocket::bind("0.0.0.0:0").await.map_err(|e| {
+                error!("Failed to bind local UDP socket: {}", e);
+                anyhow::anyhow!(e)
+            })?;
+
+            let message = b"Hello Onebox";
+            match local_socket.send_to(message, server_addr).await {
+                Ok(bytes) => info!("Sent {} bytes to {}", bytes, server_addr),
+                Err(e) => error!("Failed to send UDP datagram: {}", e),
+            }
         }
 
         Commands::Stop => {
