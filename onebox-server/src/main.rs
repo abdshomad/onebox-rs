@@ -2,7 +2,9 @@
 
 use clap::{Parser, Subcommand};
 use onebox_core::prelude::*;
+use tokio::net::UdpSocket;
 use tracing::{error, info, Level};
+use std::net::SocketAddr;
 
 #[derive(Parser)]
 #[command(name = "onebox-server")]
@@ -81,17 +83,48 @@ async fn main() -> anyhow::Result<()> {
                 info!("Running in foreground mode");
             }
 
-            if let Some(bind_addr) = bind {
-                info!("Binding to override address: {}", bind_addr);
+            // Determine bind address (override takes precedence)
+            let bind_addr: SocketAddr = if let Some(bind_str) = bind {
+                match bind_str.parse() {
+                    Ok(addr) => {
+                        info!("Binding to override address: {}", addr);
+                        addr
+                    }
+                    Err(e) => {
+                        error!("Invalid bind address '{}': {}", bind_str, e);
+                        return Err(anyhow::anyhow!("Invalid bind address"));
+                    }
+                }
             } else {
-                info!(
-                    "Binding to configured address: {}",
-                    config.server.network.bind_address
-                );
-            }
+                let addr = config.server.network.bind_address;
+                info!("Binding to configured address: {}", addr);
+                addr
+            };
 
-            // TODO: Implement server startup logic
-            info!("Server startup not yet implemented");
+            // Bind UDP socket and log incoming datagrams
+            let socket = UdpSocket::bind(bind_addr).await.map_err(|e| {
+                error!("Failed to bind UDP socket on {}: {}", bind_addr, e);
+                anyhow::anyhow!(e)
+            })?;
+
+            info!("UDP server listening on {}", bind_addr);
+
+            let mut buffer = vec![0u8; 2048];
+            loop {
+                match socket.recv_from(&mut buffer).await {
+                    Ok((len, peer)) => {
+                        info!("Received {} bytes from {}", len, peer);
+                        if len > 0 {
+                            let preview = String::from_utf8_lossy(&buffer[..len]);
+                            info!("Data (utf8-lossy preview): {}", preview);
+                        }
+                    }
+                    Err(e) => {
+                        error!("UDP receive error: {}", e);
+                        break;
+                    }
+                }
+            }
         }
 
         Commands::Stop => {
