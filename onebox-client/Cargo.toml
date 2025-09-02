@@ -12,7 +12,6 @@ path = "src/main.rs"
 [dependencies]
 onebox-core = { path = "../onebox-core" }
 tokio = { workspace = true }
-tokio-tun = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 clap = { workspace = true }
