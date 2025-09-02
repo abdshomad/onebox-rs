@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: onebox-rs:latest
+    container_name: onebox-server
+    command: ["/usr/local/bin/onebox-server", "--log-level", "info", "--config", "/home/onebox/config.docker.server.toml", "start", "--foreground", "--bind", "0.0.0.0:8080"]
+    networks:
+      simnet:
+        ipv4_address: 172.28.0.2
+    ports:
+      - "8080:8080/udp"
+    restart: unless-stopped
+    volumes:
+      - ./config.docker.server.toml:/home/onebox/config.docker.server.toml:ro
+
+  client:
+    image: onebox-rs:latest
+    container_name: onebox-client
+    depends_on:
+      - server
+    command: ["/usr/local/bin/onebox-client", "--log-level", "info", "--config", "/home/onebox/config.docker.client.toml", "start", "--foreground"]
+    networks:
+      simnet:
+        ipv4_address: 172.28.0.3
+    volumes:
+      - ./config.docker.client.toml:/home/onebox/config.docker.client.toml:ro
+  
+    
+    
+    restart: on-failure
+
+networks:
+  simnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+

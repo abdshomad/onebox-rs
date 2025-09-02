@@ -278,3 +278,35 @@ This software requires root privileges to create TUN interfaces and modify routi
 ---
 
 **Made with ❤️ in Rust**
+
+## 🐳 Docker Compose Simulation
+
+You can simulate client-server communication locally using Docker Compose.
+
+1. Build the image:
+```bash
+docker compose build
+```
+
+2. Start the server and client on an isolated bridge network:
+```bash
+docker compose up -d
+```
+
+3. Inspect logs:
+```bash
+docker compose logs -f server
+docker compose logs -f client
+```
+
+4. Send another test datagram from the client container:
+```bash
+docker compose exec client /usr/local/bin/onebox-client --config /home/onebox/config.docker.client.toml start --foreground
+```
+
+Notes:
+- The compose file uses a custom bridge network with static IPs:
+  - Server: `172.28.0.2:8080/udp`
+  - Client: `172.28.0.3`
+- Client and server load their configs from `config.docker.*.toml` mounted read-only.
+- The current client sends a single UDP datagram ("Hello Onebox") to the server. The server logs received datagrams.
