@@ -2,9 +2,9 @@
 
 use clap::{Parser, Subcommand};
 use onebox_core::prelude::*;
+use std::net::SocketAddr;
 use tokio::net::UdpSocket;
 use tracing::{error, info, Level};
-use std::net::SocketAddr;
 
 #[derive(Parser)]
 #[command(name = "onebox-server")]
@@ -84,21 +84,22 @@ async fn main() -> anyhow::Result<()> {
             }
 
             // Determine bind address (override takes precedence)
-            let bind_addr: SocketAddr = if let Some(bind_str) = bind {
-                match bind_str.parse() {
-                    Ok(addr) => {
-                        info!("Binding to override address: {}", addr);
-                        addr
-                    }
-                    Err(e) => {
-                        error!("Invalid bind address '{}': {}", bind_str, e);
-                        return Err(anyhow::anyhow!("Invalid bind address"));
-                    }
+            let bind_addr_str = bind.unwrap_or_else(|| {
+                format!(
+                    "{}:{}",
+                    config.server.listen_address, config.server.listen_port
+                )
+            });
+
+            let bind_addr: SocketAddr = match bind_addr_str.parse() {
+                Ok(addr) => {
+                    info!("Binding to address: {}", addr);
+                    addr
                 }
-            } else {
-                let addr = config.server.network.bind_address;
-                info!("Binding to configured address: {}", addr);
-                addr
+                Err(e) => {
+                    error!("Invalid bind address '{}': {}", bind_addr_str, e);
+                    return Err(anyhow::anyhow!("Invalid bind address"));
+                }
             };
 
             // Bind UDP socket and log incoming datagrams
@@ -141,13 +142,8 @@ async fn main() -> anyhow::Result<()> {
 
         Commands::Config => {
             info!("Showing server configuration...");
-            println!("Configuration loaded from: {}", cli.config);
-            println!(
-                "Server TUN: {} ({})",
-                config.server.tun.name, config.server.tun.ip
-            );
-            println!("Bind address: {}", config.server.network.bind_address);
-            println!("Max connections: {}", config.server.network.max_connections);
+            println!("Configuration loaded from: {}", &cli.config);
+            println!("{config:#?}");
         }
     }
 
