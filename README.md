@@ -310,3 +310,62 @@ Notes:
   - Client: `172.28.0.3`
 - Client and server load their configs from `config.docker.*.toml` mounted read-only.
 - The current client sends a single UDP datagram ("Hello Onebox") to the server. The server logs received datagrams.
+
+## 🔬 Manual Testing
+
+### Option A: With Docker Compose (Recommended)
+
+Prereqs: Docker and Docker Compose plugin installed.
+
+1) Build images
+```bash
+docker compose build
+```
+
+2) Start services
+```bash
+docker compose up -d
+```
+
+3) View logs
+```bash
+# Server logs (should show "UDP server listening on ..." and "Received ... bytes from ...")
+docker compose logs -f server
+
+# Client logs (should show it sent a datagram)
+docker compose logs -f client
+```
+
+4) Trigger an additional client send
+```bash
+docker compose exec client /usr/local/bin/onebox-client \
+  --config /home/onebox/config.docker.client.toml start --foreground
+```
+
+5) Stop services
+```bash
+docker compose down -v
+```
+
+### Option B: Local Binaries (No Docker)
+
+Prereqs: Rust toolchain installed (rustup), Linux environment.
+
+1) Build
+```bash
+cargo build
+```
+
+2) Start server (foreground)
+```bash
+RUST_LOG=info ./target/debug/onebox-server start --foreground
+```
+
+3) In another terminal, run client once
+```bash
+RUST_LOG=info ./target/debug/onebox-client --config ./config.toml start --foreground
+```
+
+Expected:
+- Server prints that it is listening and logs a received datagram of 12 bytes from the client.
+- Client prints that it sent 12 bytes and exits.

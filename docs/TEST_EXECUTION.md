@@ -304,3 +304,55 @@ Based on the test results, the current implementation status is:
 The onebox-rs application demonstrates excellent foundational work with a professional-grade CLI framework, robust configuration system, and clean codebase. The project is ready for the next implementation phase focusing on basic networking functionality and TUN interface implementation.
 
 **Overall Test Result**: ✅ **PASS** - Foundation Complete, Ready for Next Phase
+
+## Appendix: Manual Client-Server Communication Test
+
+### A. Docker Compose Flow
+
+1. Build and start services
+```
+docker compose build
+docker compose up -d
+```
+
+2. Verify logs
+```
+docker compose logs -f server
+docker compose logs -f client
+```
+
+3. Trigger an additional client send
+```
+docker compose exec client /usr/local/bin/onebox-client \
+  --config /home/onebox/config.docker.client.toml start --foreground
+```
+
+4. Stop services
+```
+docker compose down -v
+```
+
+Expected Results:
+- Server logs: "UDP server listening on ..." followed by "Received 12 bytes from ..." with a lossy UTF-8 preview of payload.
+- Client logs: "Sent 12 bytes to ..." and exit.
+
+### B. Local Binaries Flow
+
+1. Build
+```
+cargo build
+```
+
+2. Start server (foreground)
+```
+RUST_LOG=info ./target/debug/onebox-server start --foreground
+```
+
+3. Run client once in another terminal
+```
+RUST_LOG=info ./target/debug/onebox-client --config ./config.toml start --foreground
+```
+
+Expected Results:
+- Server prints listening address and "Received 12 bytes from ...".
+- Client prints "Sent 12 bytes to ..." and exits.
