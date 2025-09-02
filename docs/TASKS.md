@@ -24,9 +24,9 @@ This document contains the complete list of tasks required to implement the oneb
 
 | ID | Task Description | Related SRS | Related Tests | Status | Priority |
 |----|------------------|--------------|---------------|---------|----------|
-| **T4** | **Basic UDP Server**: In `onebox-server`, create a basic Tokio UDP server that listens on a port and logs any data it receives. | FR-S-02 | TS0.2 | `To Do` | High |
-| **T5** | **Basic UDP Client**: In `onebox-client`, create a basic client that sends a "Hello Onebox" message to the server's address. | FR-C-04 | TS0.3 | `To Do` | High |
-| **T6** | **Client TUN & Routing**: In `onebox-client`, implement TUN interface creation and modify the system routing table to capture traffic. | FR-C-01, FR-C-02, SI-1 | TS0.1 | `To Do` | High |
+| **T4** | **Basic UDP Server**: In `onebox-server`, create a basic Tokio UDP server that listens on a port and logs any data it receives. | FR-S-02 | TS0.2 | `Done` | High |
+| **T5** | **Basic UDP Client**: In `onebox-client`, create a basic client that sends a "Hello Onebox" message to the server's address. | FR-C-04 | TS0.3 | `Done` | High |
+| **T6** | **Client TUN & Routing**: In `onebox-client`, implement TUN interface creation and modify the system routing table to capture traffic. | FR-C-01, FR-C-02, SI-1 | TS0.1 | `Done` | High |
 | **T7** | **Server TUN & Forwarding**: In `onebox-server`, implement TUN interface creation and basic NAT/forwarding rules. | FR-S-01, FR-S-04 | N/A | `To Do` | High |
 
 ### Phase 3: Core Bonding Engine
