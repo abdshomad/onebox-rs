@@ -9,6 +9,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **Basic UDP Server**: Implemented a basic UDP server in `onebox-server` that listens for incoming datagrams and logs them. (T4)
 - **Basic UDP Client**: Implemented a basic UDP client in `onebox-client` that sends a "Hello Onebox" message to the server. (T5)
 - **Client TUN Creation**: Implemented TUN interface creation and configuration on the client. (T6)
+- **Server TUN & Forwarding**: Implemented TUN interface creation, IP forwarding, and NAT masquerading on the server. (T7)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -50,7 +51,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **T4**: Basic UDP Server - `Done`
 - **T5**: Basic UDP Client - `Done`
 - **T6**: Client TUN & Routing - `Done`
-- **T7**: Server TUN & Forwarding - `To Do`
+- **T7**: Server TUN & Forwarding - `Done`
 
 ### Phase 3: Core Bonding Engine (Planned)
 - **T8**: E2E Ping Tunnel - `To Do`
