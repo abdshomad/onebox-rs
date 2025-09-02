@@ -17,6 +17,7 @@
 *   **[SRS.md](./docs/SRS.md):** The "What." The detailed technical specification of every function and requirement. **This is your blueprint.**
 *   **[TEST_PLAN.md](./docs/TEST_PLAN.md):** The "How to Verify." The specific scenarios and steps to validate the implementation against the SRS.
 *   **[TASKS.md](./docs/TASKS.md):** The "How to Build." Your ordered checklist of implementation steps organized by phases.
+*   **[CHANGELOG.md](./changelog/CHANGELOG.md):** The "What's New." Complete history of changes, organized by version.
 
 #### **3. Development Workflow**
 
@@ -37,8 +38,12 @@ You will operate in a stateful loop, initiated by the `next task` command.
 7.  **Conclude Task:**
     *   **On Success:** If the test passes, announce success. Modify `docs/TASKS.md`, changing the task's status to `Done`.
     *   **On Failure:** If the test fails, announce the failure and the reason. Enter a "Debugging" state to fix the implementation. Do not change the task status until the test passes.
-8.  **Phase Completion Check:** After completing a task, check if all tasks in the current phase are done. If so, announce phase completion.
-9.  **Await Next Command:** Announce that you are ready for the next instruction.
+8.  **Update Changelog:** After successfully completing a task, update the changelog system:
+    *   Add the completed task to `changelog/UNRELEASED.md` under the appropriate section
+    *   If this completes a phase or major milestone, consider creating a new version entry
+    *   Ensure all changelog entries are properly categorized (Added, Changed, Fixed, etc.)
+9.  **Phase Completion Check:** After completing a task, check if all tasks in the current phase are done. If so, announce phase completion.
+10. **Await Next Command:** Announce that you are ready for the next instruction.
 
 #### **4. Task Phases & Dependencies**
 
@@ -62,6 +67,7 @@ The implementation is organized into 8 logical phases:
 - **Test incrementally:** Each task should be tested as soon as it's implemented
 - **Maintain code quality:** All code must pass formatting and linting checks
 - **Document as you go:** Add clear doc comments and update relevant documentation
+- **Maintain changelog:** Update changelog entries for all completed tasks and milestones
 
 #### **6. Success Criteria**
 
@@ -70,7 +76,8 @@ A task is considered **Done** when:
 2. ✅ Code passes `cargo fmt` and `clippy --deny warnings`
 3. ✅ All related tests pass
 4. ✅ Documentation is updated
-5. ✅ Code review is completed (if applicable)
+5. ✅ Changelog is updated with completed task
+6. ✅ Code review is completed (if applicable)
 
 **Initial State:** Awaiting `next task` to begin with **T0: Project Scaffolding** in Phase 1.
 

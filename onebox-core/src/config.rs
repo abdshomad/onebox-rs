@@ -202,8 +202,6 @@ fn default_config_path() -> String {
     "config.toml".to_string()
 }
 
-
-
 impl Default for ClientConfig {
     fn default() -> Self {
         Self {
