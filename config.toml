@@ -7,6 +7,9 @@ preshared_key = "your-secure-pre-shared-key-here"
 [client]
 server_address = "198.51.100.1" # Public IP of the onebox-server
 server_port = 51820
+tun_name = "onebox0"
+tun_ip = "10.8.0.1"
+tun_netmask = "255.255.255.0"
 
 [server]
 listen_address = "0.0.0.0" # Listen on all interfaces

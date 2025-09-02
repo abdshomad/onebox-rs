@@ -6,6 +6,9 @@ This document tracks upcoming changes and features that are planned for future r
 ## Added
 - **Configuration System**: A simplified, `serde`-based configuration system for loading settings from `config.toml`. (T2)
 - **CLI Framework**: Basic CLI structure for `onebox-client` and `onebox-server` using `clap`, including `start`, `stop`, and `status` commands. (T3)
+- **Basic UDP Server**: Implemented a basic UDP server in `onebox-server` that listens for incoming datagrams and logs them. (T4)
+- **Basic UDP Client**: Implemented a basic UDP client in `onebox-client` that sends a "Hello Onebox" message to the server. (T5)
+- **Client TUN Creation**: Implemented TUN interface creation and configuration on the client. (T6)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -44,9 +47,9 @@ This document tracks upcoming changes and features that are planned for future r
 - **T3**: CLI Framework - `Done`
 
 ### Phase 2: Basic Networking & TUN Interface (Planned)
-- **T4**: Basic UDP Server - `To Do`
-- **T5**: Basic UDP Client - `To Do`
-- **T6**: Client TUN & Routing - `To Do`
+- **T4**: Basic UDP Server - `Done`
+- **T5**: Basic UDP Client - `Done`
+- **T6**: Client TUN & Routing - `Done`
 - **T7**: Server TUN & Forwarding - `To Do`
 
 ### Phase 3: Core Bonding Engine (Planned)

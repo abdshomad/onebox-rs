@@ -24,6 +24,9 @@ pub struct Config {
 pub struct ClientConfig {
     pub server_address: String,
     pub server_port: u16,
+    pub tun_name: String,
+    pub tun_ip: String,
+    pub tun_netmask: String,
 }
 
 /// Contains server-specific configuration.
@@ -66,6 +69,9 @@ impl Default for ClientConfig {
         Self {
             server_address: "127.0.0.1".to_string(),
             server_port: 51820,
+            tun_name: "onebox0".to_string(),
+            tun_ip: "10.8.0.1".to_string(),
+            tun_netmask: "255.255.255.0".to_string(),
         }
     }
 }
