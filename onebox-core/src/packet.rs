@@ -80,3 +80,53 @@ impl PacketHeader {
             + std::mem::size_of::<u32>()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn packet_type_is_four_bytes() {
+        assert_eq!(std::mem::size_of::<PacketType>(), std::mem::size_of::<u32>());
+    }
+
+    #[test]
+    fn packet_header_default_values() {
+        let header = PacketHeader::default();
+        assert_eq!(header.sequence_number, 0);
+        assert_eq!(header.packet_type, PacketType::Data);
+        assert!(header.timestamp > 0);
+        assert_eq!(header.client_id.0, 0);
+        assert_eq!(header.reserved, 0);
+    }
+
+    #[test]
+    fn packet_header_new_sets_fields() {
+        let client_id = ClientId(42);
+        let header = PacketHeader::new(123, PacketType::Probe, client_id);
+        assert_eq!(header.sequence_number, 123);
+        assert_eq!(header.packet_type, PacketType::Probe);
+        assert_eq!(header.client_id.0, 42);
+        assert!(header.timestamp > 0);
+    }
+
+    #[test]
+    fn packet_header_size_matches_layout() {
+        assert_eq!(PacketHeader::size(), 8 + 8 + 16 + 4 + 4);
+    }
+
+    #[test]
+    fn serde_roundtrip_packet_header() {
+        let mut header = PacketHeader::new(7, PacketType::Auth, ClientId(0xABCD));
+        header.timestamp = 1234567890;
+        header.reserved = 1;
+        let json = serde_json::to_string(&header).unwrap();
+        let de: PacketHeader = serde_json::from_str(&json).unwrap();
+        assert_eq!(de.sequence_number, 7);
+        assert_eq!(de.packet_type, PacketType::Auth);
+        assert_eq!(de.timestamp, 1234567890);
+        assert_eq!(de.client_id.0, 0xABCD);
+        assert_eq!(de.reserved, 1);
+    }
+}
