@@ -88,7 +88,10 @@ mod tests {
 
     #[test]
     fn packet_type_is_four_bytes() {
-        assert_eq!(std::mem::size_of::<PacketType>(), std::mem::size_of::<u32>());
+        assert_eq!(
+            std::mem::size_of::<PacketType>(),
+            std::mem::size_of::<u32>()
+        );
     }
 
     #[test]

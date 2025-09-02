@@ -78,7 +78,10 @@ async fn main() -> anyhow::Result<()> {
                 info!("Running in foreground mode");
             }
             // Basic UDP client: send a Hello Onebox message to server
-            let server_addr = config.client.server.address;
+            let server_addr = format!(
+                "{}:{}",
+                config.client.server_address, config.client.server_port
+            );
             info!("Sending test datagram to server at {}", server_addr);
 
             // Bind to an ephemeral local UDP port
@@ -88,7 +91,7 @@ async fn main() -> anyhow::Result<()> {
             })?;
 
             let message = b"Hello Onebox";
-            match local_socket.send_to(message, server_addr).await {
+            match local_socket.send_to(message, &server_addr).await {
                 Ok(bytes) => info!("Sent {} bytes to {}", bytes, server_addr),
                 Err(e) => error!("Failed to send UDP datagram: {}", e),
             }
@@ -108,12 +111,8 @@ async fn main() -> anyhow::Result<()> {
 
         Commands::Config => {
             info!("Showing client configuration...");
-            println!("Configuration loaded from: {}", cli.config);
-            println!(
-                "Client TUN: {} ({})",
-                config.client.tun.name, config.client.tun.ip
-            );
-            println!("Server: {}", config.client.server.address);
+            println!("Configuration loaded from: {}", &cli.config);
+            println!("{config:#?}");
         }
     }
 

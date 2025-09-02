@@ -4,6 +4,7 @@
 This document tracks upcoming changes and features that are planned for future releases of onebox-rs. These changes are currently in development or planned for implementation.
 
 ## Added
+- **Configuration System**: A simplified, `serde`-based configuration system for loading settings from `config.toml`. (T2)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -19,7 +20,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **CI/CD Pipeline**: Automated testing and deployment
 
 ## Changed
-- N/A
+- **Refactored Configuration**: Simplified the existing configuration structs and `config.toml` file to align with the SRS (SI-2). The complex, nested structure has been replaced with a flatter, more direct mapping of requirements. (T2)
 
 ## Deprecated
 - N/A
@@ -35,44 +36,50 @@ This document tracks upcoming changes and features that are planned for future r
 
 ## Development Status
 
-### Phase 2: Basic Networking & TUN Interface (In Progress)
-- **T4**: Basic UDP Server - Not started
-- **T5**: Basic UDP Client - Not started  
-- **T6**: Client TUN & Routing - Not started
-- **T7**: Server TUN & Forwarding - Not started
+### Phase 1: Project Foundation & Core Infrastructure (Completed)
+- **T0**: Project Scaffolding - `Done`
+- **T1**: Core Data Structures - `Done`
+- **T2**: Configuration System - `Done`
+- **T3**: CLI Framework - `To Do`
+
+### Phase 2: Basic Networking & TUN Interface (Planned)
+- **T4**: Basic UDP Server - `To Do`
+- **T5**: Basic UDP Client - `To Do`
+- **T6**: Client TUN & Routing - `To Do`
+- **T7**: Server TUN & Forwarding - `To Do`
 
 ### Phase 3: Core Bonding Engine (Planned)
-- **T8**: E2E Ping Tunnel - Not started
-- **T9**: Multi-Link Socket Binding - Not started
-- **T10**: Packet Distribution - Not started
-- **T11**: Sequencing & Reassembly - Not started
+- **T8**: E2E Ping Tunnel - `To Do`
+- **T9**: Multi-Link Socket Binding - `To Do`
+- **T10**: Packet Distribution - `To Do`
+- **T11**: Sequencing & Reassembly - `To Do`
 
 ### Phase 4: Security & Authentication (Planned)
-- **T12**: Authentication & Encryption - Not started
-- **T13**: Secure Handshake - Not started
+- **T12**: Authentication & Encryption - `To Do`
+- **T13**: Secure Handshake - `To Do`
 
 ### Phase 5: Link Health & Failover (Planned)
-- **T14**: Link Health Probing - Not started
-- **T15**: Failover Logic - Not started
-- **T16**: Link Recovery Logic - Not started
+- **T14**: Link Health Probing - `To Do`
+- **T15**: Failover Logic - `To Do`
+- **T16**: Link Recovery Logic - `To Do`
 
 ### Phase 6: Performance & Optimization (Planned)
-- **T17**: Performance Profiling - Not started
-- **T18**: Memory & CPU Optimization - Not started
-- **T19**: Concurrency Optimization - Not started
+- **T17**: Performance Profiling - `To Do`
+- **T18**: Memory & CPU Optimization - `To Do`
+- **T19**: Concurrency Optimization - `To Do`
 
 ### Phase 7: Testing & Quality Assurance (Planned)
-- **T20**: Unit Tests - Not started
-- **T21**: Integration Tests - Not started
-- **T22**: Performance Tests - Not started
-- **T23**: Security Tests - Not started
-- **T24**: Failover Tests - Not started
+- **T20**: Unit Tests - `To Do`
+- **T21**: Integration Tests - `To Do`
+- **T22**: Performance Tests - `To Do`
+- **T23**: Security Tests - `To Do`
+- **T24**: Failover Tests - `To Do`
 
 ### Phase 8: Documentation & Deployment (Planned)
-- **T25**: User Documentation - Not started
-- **T26**: Developer Documentation - Not started
-- **T27**: Deployment Scripts - Not started
-- **T28**: Final Testing - Not started
+- **T25**: User Documentation - `To Do`
+- **T26**: Developer Documentation - `To Do`
+- **T27**: Deployment Scripts - `To Do`
+- **T28**: Final Testing - `To Do`
 
 ## Technical Debt
 - **Workspace Resolver**: Address resolver version compatibility warning
