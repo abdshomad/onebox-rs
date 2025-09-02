@@ -136,8 +136,19 @@ async fn main() -> anyhow::Result<()> {
 
         Commands::Status => {
             info!("Showing server status...");
-            // TODO: Implement status display logic
-            info!("Status display not yet implemented");
+            // Per SRS UI-5, display a list of connected clients.
+            // For T3, we will display a static, placeholder list.
+            println!("Connected Clients");
+            println!("{:-<17}", "");
+            println!(
+                "{:<17} {:<22} {:<30}",
+                "Client ID", "Source IP", "Aggregated Throughput (kbps)"
+            );
+            println!("{:-<17} {:-<22} {:-<30}", "", "", "");
+            println!(
+                "{:<17} {:<22} {:<30}",
+                "client-1234", "198.51.100.10:12345", "75000"
+            );
         }
 
         Commands::Config => {

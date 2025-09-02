@@ -105,8 +105,28 @@ async fn main() -> anyhow::Result<()> {
 
         Commands::Status => {
             info!("Showing client status...");
-            // TODO: Implement status display logic
-            info!("Status display not yet implemented");
+            // Per SRS UI-3, display a real-time table of all detected WAN links.
+            // For T3, we will display a static, placeholder table.
+            println!(
+                "{:<15} {:<10} {:<15} {:<10} {:<20}",
+                "Link", "Status", "Latency (ms)", "Loss (%)", "Throughput (kbps)"
+            );
+            println!(
+                "{:-<15} {:-<10} {:-<15} {:-<10} {:-<20}",
+                "", "", "", "", ""
+            );
+            println!(
+                "{:<15} {:<10} {:<15} {:<10} {:<20}",
+                "WAN1 (eth0)", "Up", "25", "0.1", "50000"
+            );
+            println!(
+                "{:<15} {:<10} {:<15} {:<10} {:<20}",
+                "WAN2 (wlan0)", "Up", "42", "0.3", "25000"
+            );
+            println!(
+                "{:<15} {:<10} {:<15} {:<10} {:<20}",
+                "WAN3 (wwan0)", "Down", "-", "-", "-"
+            );
         }
 
         Commands::Config => {

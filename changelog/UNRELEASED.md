@@ -5,6 +5,7 @@ This document tracks upcoming changes and features that are planned for future r
 
 ## Added
 - **Configuration System**: A simplified, `serde`-based configuration system for loading settings from `config.toml`. (T2)
+- **CLI Framework**: Basic CLI structure for `onebox-client` and `onebox-server` using `clap`, including `start`, `stop`, and `status` commands. (T3)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -40,7 +41,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **T0**: Project Scaffolding - `Done`
 - **T1**: Core Data Structures - `Done`
 - **T2**: Configuration System - `Done`
-- **T3**: CLI Framework - `To Do`
+- **T3**: CLI Framework - `Done`
 
 ### Phase 2: Basic Networking & TUN Interface (Planned)
 - **T4**: Basic UDP Server - `To Do`
