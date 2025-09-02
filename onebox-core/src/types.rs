@@ -3,6 +3,10 @@
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
+/// Unique identifier for a client
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub struct ClientId(pub u128);
+
 /// Network interface information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkInterface {
