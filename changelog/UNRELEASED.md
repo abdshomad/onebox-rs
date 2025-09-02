@@ -10,6 +10,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **Basic UDP Client**: Implemented a basic UDP client in `onebox-client` that sends a "Hello Onebox" message to the server. (T5)
 - **Client TUN Creation**: Implemented TUN interface creation and configuration on the client. (T6)
 - **Server TUN & Forwarding**: Implemented TUN interface creation, IP forwarding, and NAT masquerading on the server. (T7)
+- **End-to-End Tunnel**: Created a bidirectional data path between the client and server. The client reads packets from its TUN, sends them to the server via UDP, and the server writes them to its TUN. The reverse path is also implemented. (T8)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -54,7 +55,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **T7**: Server TUN & Forwarding - `Done`
 
 ### Phase 3: Core Bonding Engine (Planned)
-- **T8**: E2E Ping Tunnel - `To Do`
+- **T8**: E2E Ping Tunnel - `Done`
 - **T9**: Multi-Link Socket Binding - `To Do`
 - **T10**: Packet Distribution - `To Do`
 - **T11**: Sequencing & Reassembly - `To Do`

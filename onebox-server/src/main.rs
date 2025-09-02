@@ -23,9 +23,6 @@ struct Cli {
     #[arg(short, long, default_value = "config.toml")]
     config: String,
 
-    /// Log level
-    #[arg(short, long, default_value = "info")]
-    log_level: String,
 }
 
 #[derive(Subcommand)]
@@ -55,8 +52,18 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    // Load configuration
+    let config = match Config::from_file(&cli.config) {
+        Ok(config) => config,
+        Err(e) => {
+            // Can't use tracing here because it's not initialized yet.
+            eprintln!("Failed to load configuration: {}", e);
+            return Err(anyhow::anyhow!("Configuration error: {}", e));
+        }
+    };
+
     // Initialize logging
-    let log_level = match cli.log_level.as_str() {
+    let log_level = match config.log_level.as_str() {
         "trace" => Level::TRACE,
         "debug" => Level::DEBUG,
         "info" => Level::INFO,
@@ -64,22 +71,10 @@ async fn main() -> anyhow::Result<()> {
         "error" => Level::ERROR,
         _ => Level::INFO,
     };
-
     tracing_subscriber::fmt().with_max_level(log_level).init();
 
     info!("onebox-server starting up...");
-
-    // Load configuration
-    let config = match Config::from_file(&cli.config) {
-        Ok(config) => {
-            info!("Configuration loaded from {}", cli.config);
-            config
-        }
-        Err(e) => {
-            error!("Failed to load configuration: {}", e);
-            return Err(anyhow::anyhow!("Configuration error: {}", e));
-        }
-    };
+    info!("Configuration loaded from {}", cli.config);
 
     match cli.command {
         Commands::Start { foreground, bind } => {
@@ -211,8 +206,10 @@ async fn main() -> anyhow::Result<()> {
             let tun_to_udp_socket = socket.clone();
             let client_addr_reader = client_addr.clone();
             let tun_to_udp = tokio::spawn(async move {
+                info!("TUN->UDP task started.");
                 let mut buf = [0u8; 2048];
                 loop {
+                    debug!("TUN->UDP: Waiting for packet from TUN...");
                     match tun_reader.read(&mut buf).await {
                         Ok(len) => {
                             debug!("Read {} bytes from TUN", len);
@@ -316,43 +313,30 @@ fn setup_nat_masquerade(interface: &str, source_net: &str) -> anyhow::Result<()>
         "Setting up NAT masquerade on {} for source {}",
         interface, source_net
     );
-    let commands = [
-        // Delete any existing rule to avoid duplicates
-        vec![
-            "-t",
-            "nat",
-            "-D",
-            "POSTROUTING",
-            "-s",
-            source_net,
-            "-o",
-            interface,
-            "-j",
-            "MASQUERADE",
-        ],
-        // Add the new rule
-        vec![
-            "-t",
-            "nat",
-            "-A",
-            "POSTROUTING",
-            "-s",
-            source_net,
-            "-o",
-            interface,
-            "-j",
-            "MASQUERADE",
-        ],
+    // Flush all existing NAT rules to ensure a clean state.
+    let flush_status = Command::new("iptables")
+        .args(["-t", "nat", "-F"])
+        .status()?;
+    if !flush_status.success() {
+        return Err(anyhow::anyhow!("Failed to flush iptables NAT table"));
+    }
+    info!("Flushed iptables NAT table.");
+
+    let add_rule_args = [
+        "-t",
+        "nat",
+        "-A",
+        "POSTROUTING",
+        "-s",
+        source_net,
+        "-o",
+        interface,
+        "-j",
+        "MASQUERADE",
     ];
 
-    // The first command (delete) is allowed to fail if the rule doesn't exist.
-    Command::new("iptables")
-        .args(commands[0].clone())
-        .output()?;
-
-    // The second command (add) must succeed.
     let add_output = Command::new("iptables")
-        .args(commands[1].clone())
+        .args(add_rule_args)
         .output()
         .map_err(|e| anyhow::anyhow!("Failed to execute iptables: {}", e))?;
 

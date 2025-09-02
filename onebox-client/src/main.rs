@@ -22,9 +22,6 @@ struct Cli {
     #[arg(short, long, default_value = "config.toml")]
     config: String,
 
-    /// Log level
-    #[arg(short, long, default_value = "info")]
-    log_level: String,
 }
 
 #[derive(Subcommand)]
@@ -50,8 +47,18 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    // Load configuration
+    let config = match Config::from_file(&cli.config) {
+        Ok(config) => config,
+        Err(e) => {
+            // Can't use tracing here because it's not initialized yet.
+            eprintln!("Failed to load configuration: {}", e);
+            return Err(anyhow::anyhow!("Configuration error: {}", e));
+        }
+    };
+
     // Initialize logging
-    let log_level = match cli.log_level.as_str() {
+    let log_level = match config.log_level.as_str() {
         "trace" => Level::TRACE,
         "debug" => Level::DEBUG,
         "info" => Level::INFO,
@@ -59,22 +66,10 @@ async fn main() -> anyhow::Result<()> {
         "error" => Level::ERROR,
         _ => Level::INFO,
     };
-
     tracing_subscriber::fmt().with_max_level(log_level).init();
 
     info!("onebox-client starting up...");
-
-    // Load configuration
-    let config = match Config::from_file(&cli.config) {
-        Ok(config) => {
-            info!("Configuration loaded from {}", cli.config);
-            config
-        }
-        Err(e) => {
-            error!("Failed to load configuration: {}", e);
-            return Err(anyhow::anyhow!("Configuration error: {}", e));
-        }
-    };
+    info!("Configuration loaded from {}", cli.config);
 
     match cli.command {
         Commands::Start { foreground } => {
@@ -83,16 +78,13 @@ async fn main() -> anyhow::Result<()> {
                 info!("Running in foreground mode");
             }
 
-            let tun_ip: Ipv4Addr = "10.99.99.2"
-                .parse()
-                .expect("Failed to parse TUN IP address");
-            let tun_netmask: Ipv4Addr = "255.255.255.0"
-                .parse()
-                .expect("Failed to parse TUN netmask");
+            let tun_ip: Ipv4Addr = config.client.tun_ip.parse()?;
+            let tun_netmask: Ipv4Addr = config.client.tun_netmask.parse()?;
+            let tun_name = &config.client.tun_name;
 
-            info!("Creating TUN device 'onebox0'...");
+            info!("Creating TUN device '{}'...", tun_name);
             let tun = TunBuilder::new()
-                .name("onebox0")
+                .name(tun_name)
                 .tap(false)
                 .packet_info(false)
                 .up()
@@ -102,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
                 .map_err(|e| anyhow::anyhow!(e))?;
 
             info!("TUN device created. Setting as default route...");
-            set_default_route("onebox0")?;
+            set_default_route(tun_name)?;
 
             // The server address to connect to.
             let server_addr = format!(
