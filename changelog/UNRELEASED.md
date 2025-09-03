@@ -36,6 +36,7 @@ This document tracks upcoming changes and features that are planned for future r
 ## Changed
 - **Refactored Configuration**: Simplified the existing configuration structs and `config.toml` file to align with the SRS (SI-2). The complex, nested structure has been replaced with a flatter, more direct mapping of requirements. (T2)
 - **Optimized Data Path**: Refactored the client's packet processing hot path to use in-place encryption and pre-allocated buffers, significantly reducing memory allocations and CPU usage. This addresses the performance requirements of NFR-PERF-03. (T18)
+- **Concurrency Model**: Refactored the server and client data planes from a single-pipeline model to a parallel, dispatcher/worker-pool model. This significantly improves concurrency to better leverage multi-core processors, increasing throughput and reducing latency. (T19)
 
 ## Deprecated
 - N/A
@@ -44,7 +45,9 @@ This document tracks upcoming changes and features that are planned for future r
 - N/A
 
 ## Fixed
-- N/A
+- Fixed a bug where the client would authenticate with one `ClientId` but send data packets with another, causing the server to drop them.
+- Fixed a bug where the server would send all downstream data packets with a default `ClientId(0)` instead of the authenticated client's ID.
+- Fixed a critical routing bug where the server would not install a route for the client's TUN network, causing return packets to leak out the physical interface instead of being sent back through the tunnel.
 
 ## Security
 - Implemented ChaCha20-Poly1305 AEAD encryption for all tunnel traffic, authenticated by a key derived from the PSK. (T12)
