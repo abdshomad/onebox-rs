@@ -16,6 +16,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **Sequencing & Reassembly**: Added a `PacketHeader` with a sequence number to all upstream packets. Implemented a jitter buffer on the server to reorder packets, ensuring in-order delivery to the TUN interface. (T11)
 - **Symmetric Encryption**: Implemented end-to-end encryption for all tunnel traffic using ChaCha20-Poly1305. Keys are derived from the PSK using BLAKE3. This provides both confidentiality and per-packet authentication. (T12)
 - **Secure Handshake**: Implemented a simple handshake protocol. The client now sends an `AuthRequest` to establish a session, and the server validates it before accepting data packets. (T13)
+- **Link Health Probing**: Implemented a client-side keep-alive mechanism to measure link latency and loss via periodic, authenticated probes. The server now echoes these probes. (T14)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -70,7 +71,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **T13**: Secure Handshake - `Done`
 
 ### Phase 5: Link Health & Failover (Planned)
-- **T14**: Link Health Probing - `To Do`
+- **T14**: Link Health Probing - `Done`
 - **T15**: Failover Logic - `To Do`
 - **T16**: Link Recovery Logic - `To Do`
 

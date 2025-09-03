@@ -14,7 +14,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UdpSocket;
 use tokio::sync::Mutex;
 use tokio_tun::TunBuilder;
-use tracing::{error, info, Level, warn};
+use tracing::{error, info, warn, Level};
 
 #[derive(Parser)]
 #[command(name = "onebox-server")]
@@ -226,7 +226,9 @@ async fn main() -> anyhow::Result<()> {
                     };
 
                     let header_size = bincode::serialized_size(&header).unwrap_or(0) as usize;
-                    if len < header_size { continue; }
+                    if len < header_size {
+                        continue;
+                    }
                     let ciphertext = &buf[header_size..len];
 
                     match decrypt(&decryption_key, ciphertext, header.sequence_number) {
@@ -241,22 +243,38 @@ async fn main() -> anyhow::Result<()> {
 
                             match header.packet_type {
                                 PacketType::AuthRequest => {
-                                    info!("Received AuthRequest from client {}, processing.", header.client_id.0);
+                                    info!(
+                                        "Received AuthRequest from client {}, processing.",
+                                        header.client_id.0
+                                    );
                                     client_state.auth_status = AuthStatus::Authenticated;
 
                                     // Send AuthResponse
-                                    let response_header = PacketHeader::new(0, PacketType::AuthResponse, header.client_id);
-                                    let response_header_bytes = bincode::serialize(&response_header).unwrap();
-                                    let response_payload = encrypt(&encryption_key_clone, b"AUTH_OK", 0).unwrap();
-                                    let response_packet = [&response_header_bytes[..], &response_payload[..]].concat();
+                                    let response_header = PacketHeader::new(
+                                        0,
+                                        PacketType::AuthResponse,
+                                        header.client_id,
+                                    );
+                                    let response_header_bytes =
+                                        bincode::serialize(&response_header).unwrap();
+                                    let response_payload =
+                                        encrypt(&encryption_key_clone, b"AUTH_OK", 0).unwrap();
+                                    let response_packet =
+                                        [&response_header_bytes[..], &response_payload[..]]
+                                            .concat();
 
-                                    if let Err(e) = udp_to_tun_socket.send_to(&response_packet, peer).await {
+                                    if let Err(e) =
+                                        udp_to_tun_socket.send_to(&response_packet, peer).await
+                                    {
                                         error!("Failed to send AuthResponse to {}: {}", peer, e);
                                     }
                                 }
                                 PacketType::Data => {
                                     if client_state.auth_status != AuthStatus::Authenticated {
-                                        warn!("Dropping data packet from unauthenticated client {}", header.client_id.0);
+                                        warn!(
+                                            "Dropping data packet from unauthenticated client {}",
+                                            header.client_id.0
+                                        );
                                         continue;
                                     }
 
@@ -265,17 +283,44 @@ async fn main() -> anyhow::Result<()> {
                                         continue; // Old packet
                                     }
                                     if header.sequence_number > client_state.next_seq {
-                                        client_state.jitter_buffer.insert(header.sequence_number, plaintext);
+                                        client_state
+                                            .jitter_buffer
+                                            .insert(header.sequence_number, plaintext);
                                         continue;
                                     }
 
                                     let mut tun = tun_writer.lock().await;
-                                    if tun.write_all(&plaintext).await.is_err() { break; }
+                                    if tun.write_all(&plaintext).await.is_err() {
+                                        break;
+                                    }
                                     client_state.next_seq += 1;
 
-                                    while let Some(p) = client_state.jitter_buffer.remove(&client_state.next_seq) {
-                                        if tun.write_all(&p).await.is_err() { break; }
+                                    while let Some(p) =
+                                        client_state.jitter_buffer.remove(&client_state.next_seq)
+                                    {
+                                        if tun.write_all(&p).await.is_err() {
+                                            break;
+                                        }
                                         client_state.next_seq += 1;
+                                    }
+                                }
+                                PacketType::Probe => {
+                                    if client_state.auth_status != AuthStatus::Authenticated {
+                                        warn!(
+                                            "Dropping probe packet from unauthenticated client {}",
+                                            header.client_id.0
+                                        );
+                                        continue;
+                                    }
+                                    info!(
+                                        "Received probe from client {}, echoing back.",
+                                        header.client_id.0
+                                    );
+                                    // Echo the exact packet back to the sender for RTT measurement
+                                    if let Err(e) =
+                                        udp_to_tun_socket.send_to(&buf[..len], peer).await
+                                    {
+                                        error!("Failed to echo probe to {}: {}", peer, e);
                                     }
                                 }
                                 _ => warn!("Unhandled packet type: {:?}", header.packet_type),
@@ -288,7 +333,6 @@ async fn main() -> anyhow::Result<()> {
                 }
             });
 
-
             // Task 2: TUN -> UDP (with Encryption)
             let tun_to_udp_socket = socket.clone();
             let clients_reader = clients.clone();
@@ -299,13 +343,19 @@ async fn main() -> anyhow::Result<()> {
                 loop {
                     match tun_reader.read(&mut buf).await {
                         Ok(len) => {
-                            if len == 0 { continue; }
+                            if len == 0 {
+                                continue;
+                            }
 
                             // This simple routing logic sends to the first authenticated client.
                             // A proper implementation would map TUN IPs to client addresses.
                             let clients_guard = clients_reader.lock().await;
                             let peer_addr = clients_guard.values().find_map(|state| {
-                                if state.auth_status == AuthStatus::Authenticated { Some(state.last_seen_addr) } else { None }
+                                if state.auth_status == AuthStatus::Authenticated {
+                                    Some(state.last_seen_addr)
+                                } else {
+                                    None
+                                }
                             });
 
                             if let Some(peer_addr) = peer_addr {
@@ -322,7 +372,11 @@ async fn main() -> anyhow::Result<()> {
                                 let header_bytes = bincode::serialize(&header).unwrap();
                                 let packet_to_send = [&header_bytes[..], &ciphertext[..]].concat();
 
-                                if tun_to_udp_socket.send_to(&packet_to_send, peer_addr).await.is_err() {
+                                if tun_to_udp_socket
+                                    .send_to(&packet_to_send, peer_addr)
+                                    .await
+                                    .is_err()
+                                {
                                     break;
                                 }
                             }
