@@ -200,10 +200,6 @@ async fn main() -> anyhow::Result<()> {
                 info!("Running in foreground mode");
             }
 
-            let tun_ip: Ipv4Addr = config.client.tun_ip.parse()?;
-            let tun_netmask: Ipv4Addr = config.client.tun_netmask.parse()?;
-            let tun_name = &config.client.tun_name;
-
             // The server address to connect to.
             let server_addr_str = format!(
                 "{}:{}",

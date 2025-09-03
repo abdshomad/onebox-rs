@@ -18,6 +18,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **Secure Handshake**: Implemented a simple handshake protocol. The client now sends an `AuthRequest` to establish a session, and the server validates it before accepting data packets. (T13)
 - **Link Health Probing**: Implemented a client-side keep-alive mechanism to measure link latency and loss via periodic, authenticated probes. The server now echoes these probes. (T14)
 - **Failover Logic**: Implemented client-side logic to detect link failures via probe timeouts and remove them from the packet distribution pool. (T15)
+- **Unit Tests**: Added comprehensive unit tests for the `onebox-core` library, achieving over 98% code coverage. (T20)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -82,7 +83,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **T19**: Concurrency Optimization - `To Do`
 
 ### Phase 7: Testing & Quality Assurance (Planned)
-- **T20**: Unit Tests - `To Do`
+- **T20**: Unit Tests - `Done`
 - **T21**: Integration Tests - `To Do`
 - **T22**: Performance Tests - `To Do`
 - **T23**: Security Tests - `To Do`
