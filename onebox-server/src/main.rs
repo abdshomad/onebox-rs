@@ -14,7 +14,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UdpSocket;
 use tokio::sync::Mutex;
 use tokio_tun::TunBuilder;
-use tracing::{error, info, Level};
+use tracing::{debug, error, info, warn, Level};
 
 #[derive(Parser)]
 #[command(name = "onebox-server")]
@@ -61,7 +61,7 @@ enum AuthStatus {
 struct ClientState {
     auth_status: AuthStatus,
     jitter_buffer: BTreeMap<u64, Vec<u8>>,
-    next_seq: u64,
+    next_seq: Option<u64>,
     last_seen_addr: SocketAddr,
 }
 
@@ -70,7 +70,7 @@ impl ClientState {
         Self {
             auth_status: AuthStatus::Pending,
             jitter_buffer: BTreeMap::new(),
-            next_seq: 0,
+            next_seq: None,
             last_seen_addr: addr,
         }
     }
@@ -248,9 +248,13 @@ async fn main() -> anyhow::Result<()> {
                         };
 
                         if let Some((buf, peer)) = packet_data {
+                            debug!("[Worker {}] Received {} bytes from {}", i, buf.len(), peer);
                             let header = match bincode::deserialize::<PacketHeader>(&buf) {
                                 Ok(h) => h,
-                                Err(_) => continue, // Drop malformed packets
+                                Err(e) => {
+                                    warn!("[Worker {}] Header deserialize failed from {}: {}. Size: {}. Dropping.", i, peer, e, buf.len());
+                                    continue;
+                                }
                             };
 
                             let header_size =
@@ -296,22 +300,32 @@ async fn main() -> anyhow::Result<()> {
                                         }
                                         PacketType::Data => {
                                             if client_state.auth_status != AuthStatus::Authenticated {
-                                                continue;
+                                                continue; // Ignore data from unauthenticated clients
                                             }
-                                            if header.sequence_number < client_state.next_seq {
-                                                continue;
-                                            }
+
+                                            // Insert the packet into the jitter buffer.
                                             client_state.jitter_buffer.insert(header.sequence_number, plaintext);
 
-                                            let mut tun = worker_tun.lock().await;
-                                            while let Some(p) = client_state
-                                                .jitter_buffer
-                                                .remove(&client_state.next_seq)
-                                            {
-                                                if tun.write_all(&p).await.is_err() {
-                                                    break;
+                                            // If this is the first data packet, initialize the sequence number.
+                                            if client_state.next_seq.is_none() {
+                                                if let Some((&first_seq, _)) = client_state.jitter_buffer.iter().next() {
+                                                    client_state.next_seq = Some(first_seq);
                                                 }
-                                                client_state.next_seq += 1;
+                                            }
+
+                                            // Try to drain the jitter buffer.
+                                            if let Some(mut current_seq) = client_state.next_seq {
+                                                let mut tun = worker_tun.lock().await;
+                                                while let Some(p) = client_state.jitter_buffer.remove(&current_seq) {
+                                                    if tun.write_all(&p).await.is_err() {
+                                                        // If TUN write fails, stop and put the packet back.
+                                                        client_state.jitter_buffer.insert(current_seq, p);
+                                                        break;
+                                                    }
+                                                    current_seq += 1;
+                                                }
+                                                // Update the next expected sequence number.
+                                                client_state.next_seq = Some(current_seq);
                                             }
                                         }
                                         PacketType::Probe => {
@@ -324,8 +338,10 @@ async fn main() -> anyhow::Result<()> {
                                         _ => {}
                                     }
                                 }
-                                Err(_) => {
-                                    // Decryption failed, ignore packet
+                                Err(e) => {
+                                    // Using warn level because this could be noisy if an attacker is sending junk packets,
+                                    // but it's critical for debugging authentication/encryption issues.
+                                    warn!("[Worker {}] Packet decryption failed from peer {}: {}. Dropping packet.", i, peer, e);
                                 }
                             }
                         } else {
