@@ -1,19 +1,6 @@
-[global]
 log_level = "info"
-config_path = "config.docker.server.toml"
+preshared_key = "dev-psk"
 
 [server]
-[server.tun]
-name = "onebox0"
-ip = "10.0.0.1"
-netmask = "255.255.255.0"
-mtu = 1500
-
-[server.network]
-bind_address = "0.0.0.0:8080"
-max_connections = 1000
-
-[server.auth]
-psk = "dev-psk"
-encryption = "ChaCha20Poly1305"
-
+listen_address = "0.0.0.0"
+listen_port = 8080

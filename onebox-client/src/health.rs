@@ -14,6 +14,9 @@ pub enum LinkStatus {
     Unknown,
 }
 
+/// The number of consecutive probe failures before a link is marked as Down.
+pub const MAX_CONSECUTIVE_FAILURES: u32 = 3;
+
 /// Holds health statistics for a single network link.
 #[derive(Debug, Clone)]
 pub struct LinkStats {
@@ -25,6 +28,8 @@ pub struct LinkStats {
     pub probes_sent: u64,
     /// The number of probe echoes received.
     pub probes_received: u64,
+    /// The number of consecutive probes that have failed (timed out).
+    pub consecutive_failures: u32,
     /// A map of sent probe sequence numbers to the time they were sent.
     pub in_flight_probes: HashMap<u64, Instant>,
     /// The next sequence number to use for a probe on this link.
@@ -39,6 +44,7 @@ impl LinkStats {
             rtt: Duration::default(),
             probes_sent: 0,
             probes_received: 0,
+            consecutive_failures: 0,
             in_flight_probes: HashMap::new(),
             next_probe_seq: 0,
         }

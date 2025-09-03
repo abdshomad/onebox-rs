@@ -50,8 +50,8 @@ This document contains the complete list of tasks required to implement the oneb
 | ID | Task Description | Related SRS | Related Tests | Status | Priority |
 |----|------------------|--------------|---------------|---------|----------|
 | **T14** | **Link Health Probing**: Implement the client-side keep-alive mechanism to measure link latency and loss. | FR-C-07 | N/A | `Done` | Medium |
-| **T15** | **Failover Logic**: Implement the client-side logic to mark links as "Down" based on probe failures and remove them from the distribution pool. | FR-C-08 | TS2.1, TS2.3, TS5.1 | `To Do` | Medium |
-| **T16** | **Link Recovery Logic**: Implement the logic to probe "Down" links and mark them as "Up" upon successful recovery. | FR-C-08 | TS2.2 | `To Do` | Medium |
+| **T15** | **Failover Logic**: Implement the client-side logic to mark links as "Down" based on probe failures and remove them from the distribution pool. | FR-C-08 | TS2.1, TS2.3, TS5.1 | `Done` | Medium |
+| **T16** | **Link Recovery Logic**: Implement the logic to probe "Down" links and mark them as "Up" upon successful recovery. | FR-C-08 | TS2.2 | `Done` | Medium |
 
 ### Phase 6: Performance & Optimization
 
