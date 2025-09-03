@@ -67,7 +67,7 @@ This document contains the complete list of tasks required to implement the oneb
 |----|------------------|--------------|---------------|---------|----------|
 | **T20** | **Unit Tests**: Implement comprehensive unit tests for all core modules with target coverage of 70%. | NFR-MAINT-01 | N/A | `Done` | Medium |
 | **T21** | **Integration Tests**: Implement end-to-end integration tests covering all major functionality. | NFR-MAINT-01 | All | `Blocked` | Medium |
-| **T22** | **Performance Tests**: Implement stress tests to validate performance requirements under load. | NFR-PERF-01, 02, 03 | TS3.1, TS3.2, TS3.3 | `To Do` | Medium |
+| **T22** | **Performance Tests**: Implement stress tests to validate performance requirements under load. | NFR-PERF-01, 02, 03 | TS3.1, TS3.2, TS3.3 | `Blocked` | Medium |
 | **T23** | **Security Tests**: Implement tests to validate encryption and authentication requirements. | NFR-SEC-01, 02 | TS4.1, TS4.2 | `To Do` | Medium |
 | **T24** | **Failover Tests**: Implement tests to validate link failover and recovery scenarios. | NFR-REL-01, 02 | TS2.1, TS2.2, TS2.3, TS5.1 | `To Do` | Medium |
 

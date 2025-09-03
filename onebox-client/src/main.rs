@@ -404,8 +404,7 @@ async fn main() -> anyhow::Result<()> {
                             };
 
                             // Create the header and serialize it into the start of the buffer.
-                            let header =
-                                PacketHeader::new(seq, PacketType::Data, client_id);
+                            let header = PacketHeader::new(seq, PacketType::Data, client_id);
                             if let Err(e) =
                                 bincode::serialize_into(&mut packet_buf[..HEADER_SIZE], &header)
                             {
@@ -464,7 +463,11 @@ async fn main() -> anyhow::Result<()> {
                     loop {
                         match socket_clone.recv(&mut buf).await {
                             Ok(len) => {
-                                if tx_clone.send((len, buf, iface_name_clone.clone())).await.is_err() {
+                                if tx_clone
+                                    .send((len, buf, iface_name_clone.clone()))
+                                    .await
+                                    .is_err()
+                                {
                                     error!(
                                         "MPSC channel closed, cannot send packet from {}",
                                         iface_name_clone
@@ -560,7 +563,11 @@ async fn main() -> anyhow::Result<()> {
                             }
                             let ciphertext_buf = &mut packet_with_header[header_size..];
 
-                            match decrypt_in_place(&downstream_key, ciphertext_buf, header.sequence_number) {
+                            match decrypt_in_place(
+                                &downstream_key,
+                                ciphertext_buf,
+                                header.sequence_number,
+                            ) {
                                 Ok(plaintext) => {
                                     if let Err(e) = tun_writer.write_all(plaintext).await {
                                         error!("Error writing to TUN: {}", e);

@@ -93,9 +93,7 @@ mod tests {
     fn test_serde_json_error_from() {
         let serde_error = serde_json::from_str::<serde_json::Value>("{,}");
         let onebox_error: OneboxError = serde_error.unwrap_err().into();
-        assert!(onebox_error
-            .to_string()
-            .starts_with("Serialization error:"));
+        assert!(onebox_error.to_string().starts_with("Serialization error:"));
     }
 
     #[test]
