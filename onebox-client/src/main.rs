@@ -2,10 +2,13 @@
 
 use clap::{Parser, Subcommand};
 use network_interface::{NetworkInterface, NetworkInterfaceConfig};
+pub mod health;
+use chacha20poly1305::Key;
 use nix::sys::socket::{setsockopt, sockopt::BindToDevice};
 use onebox_core::packet::{PacketHeader, PacketType};
 use onebox_core::prelude::*;
 use onebox_core::types::ClientId;
+use std::collections::HashMap;
 use std::ffi::OsString;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::process::Command;
@@ -13,9 +16,9 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UdpSocket;
+use tokio::sync::Mutex;
 use tokio_tun::TunBuilder;
-use chacha20poly1305::Key;
-use tracing::{debug, error, info, Level, warn};
+use tracing::{debug, error, info, warn, Level};
 
 async fn perform_handshake(
     socket: &UdpSocket,
@@ -34,7 +37,12 @@ async fn perform_handshake(
         socket.send(&request_packet).await?;
 
         let mut recv_buf = [0u8; 2048];
-        match tokio::time::timeout(std::time::Duration::from_secs(2), socket.recv(&mut recv_buf)).await {
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            socket.recv(&mut recv_buf),
+        )
+        .await
+        {
             Ok(Ok(len)) => {
                 let response_packet = &recv_buf[..len];
                 if let Ok(header) = bincode::deserialize::<PacketHeader>(response_packet) {
@@ -55,7 +63,6 @@ async fn perform_handshake(
 
     Err(anyhow::anyhow!("Handshake failed after multiple attempts."))
 }
-
 
 /// Discovers WAN interfaces and binds a UDP socket to each one.
 /// Returns a vector containing the interface name and the bound socket.
@@ -251,6 +258,66 @@ async fn main() -> anyhow::Result<()> {
 
             info!("Handshake complete. Starting data plane...");
 
+            // Create a shared state for link health statistics
+            let link_stats = Arc::new(Mutex::new(HashMap::<String, health::LinkStats>::new()));
+
+            // Spawn a health checker for each link
+            for (iface_name, socket) in all_sockets.iter() {
+                // Initialize stats for this link
+                link_stats
+                    .lock()
+                    .await
+                    .insert(iface_name.clone(), health::LinkStats::new());
+
+                let prober_socket = socket.clone();
+                let prober_key = key.clone();
+                let prober_stats = link_stats.clone();
+                let prober_iface_name = iface_name.clone();
+                let client_id = ClientId(1); // This should be consistent with the handshake
+
+                tokio::spawn(async move {
+                    let mut interval = tokio::time::interval(std::time::Duration::from_secs(2));
+                    loop {
+                        interval.tick().await;
+
+                        let mut stats_guard = prober_stats.lock().await;
+                        // Get the next sequence number for this link's probe
+                        let seq = if let Some(stats) = stats_guard.get_mut(&prober_iface_name) {
+                            let current_seq = stats.next_probe_seq;
+                            stats.next_probe_seq = stats.next_probe_seq.wrapping_add(1);
+                            current_seq
+                        } else {
+                            // This should not happen as we initialize stats for each link
+                            error!("Could not find stats for iface {}", prober_iface_name);
+                            continue;
+                        };
+                        drop(stats_guard); // Release lock before I/O
+
+                        // Construct the probe packet
+                        let probe_header = PacketHeader::new(seq, PacketType::Probe, client_id);
+                        let header_bytes = bincode::serialize(&probe_header).unwrap();
+                        let encrypted_payload =
+                            encrypt(&prober_key, b"", probe_header.sequence_number).unwrap();
+                        let probe_packet =
+                            [header_bytes.as_slice(), encrypted_payload.as_slice()].concat();
+                        let sent_at = std::time::Instant::now();
+
+                        // Send the probe
+                        if prober_socket.send(&probe_packet).await.is_ok() {
+                            debug!("Sent probe seq={} on {}", seq, prober_iface_name);
+                            // Lock stats again to update sent count and in-flight map
+                            let mut stats_guard = prober_stats.lock().await;
+                            if let Some(stats) = stats_guard.get_mut(&prober_iface_name) {
+                                stats.probes_sent += 1;
+                                stats.in_flight_probes.insert(seq, sent_at);
+                            }
+                        } else {
+                            error!("Failed to send probe on {}", prober_iface_name);
+                        }
+                    }
+                });
+            }
+
             let round_robin_counter = Arc::new(AtomicUsize::new(0));
             let sequence_number = Arc::new(AtomicU64::new(0)); // Upstream sequence number
 
@@ -310,7 +377,7 @@ async fn main() -> anyhow::Result<()> {
             });
 
             // Downstream path: Read from all sockets, decrypt, and write to a single TUN writer
-            let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<u8>>(1024);
+            let (tx, mut rx) = tokio::sync::mpsc::channel::<(Vec<u8>, String)>(1024); // (packet, iface_name)
             let downstream_key = key.clone();
 
             for (iface_name, socket) in all_sockets.iter() {
@@ -322,7 +389,9 @@ async fn main() -> anyhow::Result<()> {
                     loop {
                         match socket_clone.recv(&mut buf).await {
                             Ok(len) => {
-                                if tx_clone.send(buf[..len].to_vec()).await.is_err() {
+                                let packet_data = buf[..len].to_vec();
+                                let packet_info = (packet_data, iface_name_clone.clone());
+                                if tx_clone.send(packet_info).await.is_err() {
                                     error!(
                                         "MPSC channel closed, cannot send packet from {}",
                                         iface_name_clone
@@ -341,16 +410,42 @@ async fn main() -> anyhow::Result<()> {
             drop(tx);
 
             // Task 2: Read from MPSC, parse header, decrypt payload, write to TUN
+            let udp_to_tun_stats = link_stats.clone();
             let udp_to_tun = tokio::spawn(async move {
-                while let Some(packet_with_header) = rx.recv().await {
+                while let Some((packet_with_header, iface_name)) = rx.recv().await {
                     match bincode::deserialize::<PacketHeader>(&packet_with_header) {
                         Ok(header) => {
+                            // Handle Probe packets (echoes from the server)
+                            if header.packet_type == PacketType::Probe {
+                                let mut stats_guard = udp_to_tun_stats.lock().await;
+                                if let Some(stats) = stats_guard.get_mut(&iface_name) {
+                                    if let Some(sent_at) =
+                                        stats.in_flight_probes.remove(&header.sequence_number)
+                                    {
+                                        let rtt = sent_at.elapsed();
+                                        stats.probes_received += 1;
+                                        stats.rtt = rtt;
+                                        stats.status = health::LinkStatus::Up;
+                                        debug!(
+                                            "Probe echo from {} (seq={}): RTT: {:?}",
+                                            iface_name, header.sequence_number, rtt
+                                        );
+                                    } else {
+                                        warn!("Received unexpected probe echo from {} (seq={}), no matching sent probe found.", iface_name, header.sequence_number);
+                                    }
+                                }
+                                continue; // Probes are not forwarded to TUN
+                            }
+
                             if header.packet_type != PacketType::Data {
-                                // This is not a data packet, so we ignore it in the data plane.
-                                // It might be a probe response, etc., to be handled elsewhere later.
+                                warn!(
+                                    "Ignoring non-data, non-probe packet: {:?}",
+                                    header.packet_type
+                                );
                                 continue;
                             }
 
+                            // Handle Data packets
                             let header_size =
                                 bincode::serialized_size(&header).unwrap_or(0) as usize;
                             if packet_with_header.len() < header_size {
@@ -366,8 +461,9 @@ async fn main() -> anyhow::Result<()> {
                                         break;
                                     }
                                     debug!(
-                                        "Decrypted and wrote {} bytes to TUN",
-                                        plaintext.len()
+                                        "Decrypted and wrote {} bytes to TUN from {}",
+                                        plaintext.len(),
+                                        iface_name
                                     );
                                 }
                                 Err(e) => {
