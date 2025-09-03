@@ -57,7 +57,7 @@ This document contains the complete list of tasks required to implement the oneb
 
 | ID | Task Description | Related SRS | Related Tests | Status | Priority |
 |----|------------------|--------------|---------------|---------|----------|
-| **T17** | **Performance Profiling**: Profile the application under load and identify bottlenecks. | NFR-PERF-01, 02, 03 | TS3.1, TS3.2, TS3.3 | `To Do` | Medium |
+| **T17** | **Performance Profiling**: Profile the application under load and identify bottlenecks. | NFR-PERF-01, 02, 03 | TS3.1, TS3.2, TS3.3 | `Blocked` | Medium |
 | **T18** | **Memory & CPU Optimization**: Optimize memory usage and CPU consumption to meet performance NFRs. | NFR-PERF-03 | TS3.3 | `To Do` | Medium |
 | **T19** | **Concurrency Optimization**: Optimize the async task model for better throughput and lower latency. | NFR-PERF-01, 02 | TS3.1, TS3.2 | `To Do` | Medium |
 
@@ -65,7 +65,7 @@ This document contains the complete list of tasks required to implement the oneb
 
 | ID | Task Description | Related SRS | Related Tests | Status | Priority |
 |----|------------------|--------------|---------------|---------|----------|
-| **T20** | **Unit Tests**: Implement comprehensive unit tests for all core modules with target coverage of 70%. | NFR-MAINT-01 | N/A | `To Do` | Medium |
+| **T20** | **Unit Tests**: Implement comprehensive unit tests for all core modules with target coverage of 70%. | NFR-MAINT-01 | N/A | `Done` | Medium |
 | **T21** | **Integration Tests**: Implement end-to-end integration tests covering all major functionality. | NFR-MAINT-01 | All | `To Do` | Medium |
 | **T22** | **Performance Tests**: Implement stress tests to validate performance requirements under load. | NFR-PERF-01, 02, 03 | TS3.1, TS3.2, TS3.3 | `To Do` | Medium |
 | **T23** | **Security Tests**: Implement tests to validate encryption and authentication requirements. | NFR-SEC-01, 02 | TS4.1, TS4.2 | `To Do` | Medium |
