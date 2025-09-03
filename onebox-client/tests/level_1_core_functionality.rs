@@ -5,7 +5,6 @@ mod common;
 use common::TestEnvironment;
 
 #[test]
-#[ignore = "Fails due to unresolved network issue where data packets are dropped after handshake"]
 fn test_ping_e2e() {
     // The '_env' variable's scope controls the setup and teardown.
     // When it is created here, TestEnvironment::new() is called.
@@ -28,13 +27,19 @@ fn test_ping_e2e() {
         .arg("ping")
         .arg("-c")
         .arg("4") // Send 4 packets
-        .arg("8.8.8.8") // A reliable public IP
+        .arg("10.0.0.88") // The simulated internet endpoint
         .output()
         .expect("Failed to execute ping command in client namespace");
 
     // Print the output from the command for easier debugging in test logs.
-    println!("Ping stdout:\n{}", String::from_utf8_lossy(&ping_output.stdout));
-    println!("Ping stderr:\n{}", String::from_utf8_lossy(&ping_output.stderr));
+    println!(
+        "Ping stdout:\n{}",
+        String::from_utf8_lossy(&ping_output.stdout)
+    );
+    println!(
+        "Ping stderr:\n{}",
+        String::from_utf8_lossy(&ping_output.stderr)
+    );
 
     // The most important check: Did the command exit with a success code?
     assert!(
@@ -43,8 +48,9 @@ fn test_ping_e2e() {
     );
 
     // Optional: A more robust check could be to parse the stdout and ensure packets were received.
+    // The exact string depends on the version of `ping`, so we check for a substring that is common.
     assert!(
-        String::from_utf8_lossy(&ping_output.stdout).contains("4 packets received"),
+        String::from_utf8_lossy(&ping_output.stdout).contains("4 received"),
         "Ping output did not indicate that all packets were received."
     );
 

@@ -209,7 +209,10 @@ mod tests {
 
         let result = decrypt(&key, &ciphertext, sequence_number);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Decryption failed"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Decryption failed"));
     }
 
     #[test]

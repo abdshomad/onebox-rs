@@ -662,6 +662,7 @@ dependencies = [
  "network-interface",
  "nix 0.27.1",
  "onebox-core",
+ "serde_json",
  "tokio",
  "tokio-tun",
  "tracing",

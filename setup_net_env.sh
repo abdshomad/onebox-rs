@@ -7,6 +7,7 @@ set -e
 echo "Cleaning up previous network namespaces and interfaces..."
 sudo ip netns del client 2>/dev/null || true
 sudo ip netns del server 2>/dev/null || true
+sudo ip netns del internet_endpoint 2>/dev/null || true
 # Bring down bridges before deleting to release interfaces
 sudo ip link set br-wan0 down 2>/dev/null || true
 sudo ip link set br-wan1 down 2>/dev/null || true
@@ -21,7 +22,7 @@ sudo ip link del v-peer-client1 2>/dev/null || true
 sudo ip link del v-peer-server 2>/dev/null || true
 echo "Cleanup complete."
 
-# --- Assuming tools are pre-installed ---
+# --- Tooling Assumption ---
 echo "Skipping tool installation. Assuming iperf3 and iproute2 are available."
 
 # --- Namespace Creation ---
@@ -71,7 +72,7 @@ sudo ip link set v-eth-server netns server
 sudo ip link set v-peer-server master br-public
 sudo ip link set v-peer-server up
 sudo ip netns exec server ip link set v-eth-server name eth0
-sudo ip netns exec server ip addr add 10.0.0.2/24 dev eth0
+sudo ip netns exec server ip addr add 10.0.0.3/24 dev eth0
 sudo ip netns exec server ip link set eth0 up
 echo "Server public interface created."
 
@@ -93,6 +94,29 @@ sudo ip netns exec server ip route add default via 10.0.0.1
 
 # Enable IP forwarding on the host to route between bridges
 sudo sysctl -w net.ipv4.ip_forward=1
+
+# Disable Reverse Path Filtering in the server namespace. This is crucial for asymmetric routing
+# scenarios like ours, where a packet from a client's virtual IP (e.g., 10.8.0.2) arrives on
+# the 'onebox0' interface, but the route back to that IP might not be on that same interface.
+# This prevents the kernel from incorrectly dropping such packets.
+echo "Disabling Reverse Path Filtering in server namespace..."
+sudo ip netns exec server sysctl -w net.ipv4.conf.all.rp_filter=0
+sudo ip netns exec server sysctl -w net.ipv4.conf.default.rp_filter=0
+sudo ip netns exec server sysctl -w net.ipv4.conf.eth0.rp_filter=0
+echo "Reverse Path Filtering disabled."
+
+# --- "Internet" Endpoint Namespace ---
+echo "Setting up 'internet_endpoint' namespace to simulate 8.8.8.8..."
+sudo ip netns add internet_endpoint
+sudo ip link add v-eth-inet type veth peer name v-peer-inet
+sudo ip link set v-eth-inet netns internet_endpoint
+sudo ip link set v-peer-inet master br-public
+sudo ip link set v-peer-inet up
+sudo ip netns exec internet_endpoint ip link set v-eth-inet name eth0
+sudo ip netns exec internet_endpoint ip addr add 10.0.0.88/24 dev eth0
+sudo ip netns exec internet_endpoint ip link set eth0 up
+sudo ip netns exec internet_endpoint ip route add default via 10.0.0.1 # Route back to server via host bridge
+echo "Internet endpoint created."
 
 # --- Host forwarding setup ---
 echo "Configuring host firewall to allow forwarding..."

@@ -199,7 +199,7 @@ async fn main() -> anyhow::Result<()> {
                 }
             };
 
-            setup_nat_masquerade(&default_iface, "10.99.99.0/24")?;
+            setup_nat_masquerade(&default_iface, "10.8.0.0/24")?;
 
             // Bind UDP socket and log incoming datagrams
             let socket = UdpSocket::bind(bind_addr).await.map_err(|e| {
@@ -290,25 +290,35 @@ async fn main() -> anyhow::Result<()> {
                                                 bincode::serialize(&resp_header).unwrap();
                                             let resp_payload =
                                                 encrypt(&worker_key, b"AUTH_OK", 0).unwrap();
-                                            let resp_packet = [&resp_header_bytes[..], &resp_payload[..]].concat();
+                                            let resp_packet =
+                                                [&resp_header_bytes[..], &resp_payload[..]]
+                                                    .concat();
 
                                             if let Err(e) =
                                                 worker_socket.send_to(&resp_packet, peer).await
                                             {
-                                                error!("[Worker {}] Failed to send AuthResponse: {}", i, e);
+                                                error!(
+                                                    "[Worker {}] Failed to send AuthResponse: {}",
+                                                    i, e
+                                                );
                                             }
                                         }
                                         PacketType::Data => {
-                                            if client_state.auth_status != AuthStatus::Authenticated {
+                                            if client_state.auth_status != AuthStatus::Authenticated
+                                            {
                                                 continue; // Ignore data from unauthenticated clients
                                             }
 
                                             // Insert the packet into the jitter buffer.
-                                            client_state.jitter_buffer.insert(header.sequence_number, plaintext);
+                                            client_state
+                                                .jitter_buffer
+                                                .insert(header.sequence_number, plaintext);
 
                                             // If this is the first data packet, initialize the sequence number.
                                             if client_state.next_seq.is_none() {
-                                                if let Some((&first_seq, _)) = client_state.jitter_buffer.iter().next() {
+                                                if let Some((&first_seq, _)) =
+                                                    client_state.jitter_buffer.iter().next()
+                                                {
                                                     client_state.next_seq = Some(first_seq);
                                                 }
                                             }
@@ -316,10 +326,14 @@ async fn main() -> anyhow::Result<()> {
                                             // Try to drain the jitter buffer.
                                             if let Some(mut current_seq) = client_state.next_seq {
                                                 let mut tun = worker_tun.lock().await;
-                                                while let Some(p) = client_state.jitter_buffer.remove(&current_seq) {
+                                                while let Some(p) =
+                                                    client_state.jitter_buffer.remove(&current_seq)
+                                                {
                                                     if tun.write_all(&p).await.is_err() {
                                                         // If TUN write fails, stop and put the packet back.
-                                                        client_state.jitter_buffer.insert(current_seq, p);
+                                                        client_state
+                                                            .jitter_buffer
+                                                            .insert(current_seq, p);
                                                         break;
                                                     }
                                                     current_seq += 1;
@@ -329,9 +343,15 @@ async fn main() -> anyhow::Result<()> {
                                             }
                                         }
                                         PacketType::Probe => {
-                                            if client_state.auth_status == AuthStatus::Authenticated {
-                                                if let Err(e) = worker_socket.send_to(&buf, peer).await {
-                                                    error!("[Worker {}] Failed to echo probe: {}", i, e);
+                                            if client_state.auth_status == AuthStatus::Authenticated
+                                            {
+                                                if let Err(e) =
+                                                    worker_socket.send_to(&buf, peer).await
+                                                {
+                                                    error!(
+                                                        "[Worker {}] Failed to echo probe: {}",
+                                                        i, e
+                                                    );
                                                 }
                                             }
                                         }
