@@ -17,6 +17,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **Symmetric Encryption**: Implemented end-to-end encryption for all tunnel traffic using ChaCha20-Poly1305. Keys are derived from the PSK using BLAKE3. This provides both confidentiality and per-packet authentication. (T12)
 - **Secure Handshake**: Implemented a simple handshake protocol. The client now sends an `AuthRequest` to establish a session, and the server validates it before accepting data packets. (T13)
 - **Link Health Probing**: Implemented a client-side keep-alive mechanism to measure link latency and loss via periodic, authenticated probes. The server now echoes these probes. (T14)
+- **Failover Logic**: Implemented client-side logic to detect link failures via probe timeouts and remove them from the packet distribution pool. (T15)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -72,8 +73,8 @@ This document tracks upcoming changes and features that are planned for future r
 
 ### Phase 5: Link Health & Failover (Planned)
 - **T14**: Link Health Probing - `Done`
-- **T15**: Failover Logic - `To Do`
-- **T16**: Link Recovery Logic - `To Do`
+- **T15**: Failover Logic - `Done`
+- **T16**: Link Recovery Logic - `Done`
 
 ### Phase 6: Performance & Optimization (Planned)
 - **T17**: Performance Profiling - `To Do`

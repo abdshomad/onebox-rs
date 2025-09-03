@@ -14,9 +14,10 @@ use std::net::{Ipv4Addr, SocketAddr};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UdpSocket;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 use tokio_tun::TunBuilder;
 use tracing::{debug, error, info, warn, Level};
 
@@ -247,6 +248,9 @@ async fn main() -> anyhow::Result<()> {
                 return Err(anyhow::anyhow!("No sockets bound, cannot proceed."));
             }
 
+            // Create a new dynamically managed list of active sockets, initially containing all sockets.
+            let active_sockets = Arc::new(RwLock::new(all_sockets.to_vec()));
+
             // Derive the encryption key from the PSK
             let key = derive_key(&config.preshared_key);
             let key = Arc::new(key);
@@ -273,27 +277,75 @@ async fn main() -> anyhow::Result<()> {
                 let prober_key = key.clone();
                 let prober_stats = link_stats.clone();
                 let prober_iface_name = iface_name.clone();
+                let prober_active_sockets = active_sockets.clone();
                 let client_id = ClientId(1); // This should be consistent with the handshake
 
                 tokio::spawn(async move {
-                    let mut interval = tokio::time::interval(std::time::Duration::from_secs(2));
+                    const PROBE_INTERVAL: Duration = Duration::from_secs(2);
+                    const PROBE_TIMEOUT: Duration = Duration::from_secs(2);
+                    let mut interval = tokio::time::interval(PROBE_INTERVAL);
+
                     loop {
                         interval.tick().await;
 
+                        let mut should_mark_down = false;
+                        let seq;
+
+                        // --- Start of stats lock ---
                         let mut stats_guard = prober_stats.lock().await;
-                        // Get the next sequence number for this link's probe
-                        let seq = if let Some(stats) = stats_guard.get_mut(&prober_iface_name) {
-                            let current_seq = stats.next_probe_seq;
+                        if let Some(stats) = stats_guard.get_mut(&prober_iface_name) {
+                            // 1. Check for timeouts
+                            let now = std::time::Instant::now();
+                            let timed_out_probes: Vec<u64> = stats
+                                .in_flight_probes
+                                .iter()
+                                .filter(|(_, &sent_at)| now.duration_since(sent_at) > PROBE_TIMEOUT)
+                                .map(|(&seq, _)| seq)
+                                .collect();
+
+                            for probe_seq in timed_out_probes {
+                                stats.in_flight_probes.remove(&probe_seq);
+                                stats.consecutive_failures += 1;
+                                warn!(
+                                    "Probe timeout on {} (seq={}), consecutive failures: {}",
+                                    prober_iface_name, probe_seq, stats.consecutive_failures
+                                );
+                            }
+
+                            // 2. Check if link should be marked as Down
+                            if stats.consecutive_failures >= health::MAX_CONSECUTIVE_FAILURES
+                                && stats.status != health::LinkStatus::Down
+                            {
+                                stats.status = health::LinkStatus::Down;
+                                should_mark_down = true; // Signal the change
+                            }
+
+                            // 3. Prepare for next probe
+                            seq = stats.next_probe_seq;
                             stats.next_probe_seq = stats.next_probe_seq.wrapping_add(1);
-                            current_seq
                         } else {
-                            // This should not happen as we initialize stats for each link
                             error!("Could not find stats for iface {}", prober_iface_name);
                             continue;
-                        };
-                        drop(stats_guard); // Release lock before I/O
+                        }
+                        drop(stats_guard);
+                        // --- End of stats lock ---
 
-                        // Construct the probe packet
+                        // 4. Update active links list if necessary
+                        if should_mark_down {
+                            warn!(
+                                "Link {} marked as DOWN. Removing from active pool.",
+                                prober_iface_name
+                            );
+                            let mut active_links_guard = prober_active_sockets.write().await;
+                            active_links_guard.retain(|(name, _)| name != &prober_iface_name);
+                            info!(
+                                "Link {} removed. Active links: {}",
+                                prober_iface_name,
+                                active_links_guard.len()
+                            );
+                        }
+
+                        // 5. Construct and send the probe packet
                         let probe_header = PacketHeader::new(seq, PacketType::Probe, client_id);
                         let header_bytes = bincode::serialize(&probe_header).unwrap();
                         let encrypted_payload =
@@ -302,10 +354,9 @@ async fn main() -> anyhow::Result<()> {
                             [header_bytes.as_slice(), encrypted_payload.as_slice()].concat();
                         let sent_at = std::time::Instant::now();
 
-                        // Send the probe
                         if prober_socket.send(&probe_packet).await.is_ok() {
                             debug!("Sent probe seq={} on {}", seq, prober_iface_name);
-                            // Lock stats again to update sent count and in-flight map
+                            // Re-acquire lock briefly to update sent stats
                             let mut stats_guard = prober_stats.lock().await;
                             if let Some(stats) = stats_guard.get_mut(&prober_iface_name) {
                                 stats.probes_sent += 1;
@@ -323,8 +374,8 @@ async fn main() -> anyhow::Result<()> {
 
             let (mut tun_reader, mut tun_writer) = tokio::io::split(tun);
 
-            // Task 1: Read from TUN, encrypt, prepend header, and send
-            let tun_to_udp_sockets = all_sockets.clone();
+            // Task 1: Read from TUN, encrypt, prepend header, and send using the dynamic active links list
+            let tun_to_udp_active_sockets = active_sockets.clone();
             let tun_to_udp_counter = round_robin_counter.clone();
             let tun_to_udp_seq = sequence_number.clone();
             let tun_to_udp_key = key.clone();
@@ -351,12 +402,26 @@ async fn main() -> anyhow::Result<()> {
                                 }
                             };
 
-                            let header_bytes = bincode::serialize(&header).unwrap();
-                            let packet_with_header = [&header_bytes[..], &ciphertext[..]].concat();
+                            let packet_with_header = [
+                                bincode::serialize(&header).unwrap().as_slice(),
+                                &ciphertext[..],
+                            ]
+                            .concat();
+
+                            // Get the current list of active links
+                            let active_links_guard = tun_to_udp_active_sockets.read().await;
+
+                            if active_links_guard.is_empty() {
+                                warn!("No active links available to send packet. Waiting...");
+                                // Drop the lock explicitly before sleeping
+                                drop(active_links_guard);
+                                tokio::time::sleep(Duration::from_secs(1)).await;
+                                continue;
+                            }
 
                             let index = tun_to_udp_counter.fetch_add(1, Ordering::Relaxed)
-                                % tun_to_udp_sockets.len();
-                            let (iface_name, socket) = &tun_to_udp_sockets[index];
+                                % active_links_guard.len();
+                            let (iface_name, socket) = &active_links_guard[index];
 
                             debug!(
                                 "Seq {}, sending {} encrypted bytes via {}",
@@ -364,8 +429,14 @@ async fn main() -> anyhow::Result<()> {
                                 packet_with_header.len(),
                                 iface_name
                             );
-                            if let Err(e) = socket.send(&packet_with_header).await {
-                                error!("Error sending to UDP via {}: {}", iface_name, e);
+
+                            // Clone the socket to move it out of the lock guard before await
+                            let socket_clone = socket.clone();
+                            let iface_name_clone = iface_name.clone();
+                            drop(active_links_guard);
+
+                            if let Err(e) = socket_clone.send(&packet_with_header).await {
+                                error!("Error sending to UDP via {}: {}", iface_name_clone, e);
                             }
                         }
                         Err(e) => {
@@ -379,6 +450,8 @@ async fn main() -> anyhow::Result<()> {
             // Downstream path: Read from all sockets, decrypt, and write to a single TUN writer
             let (tx, mut rx) = tokio::sync::mpsc::channel::<(Vec<u8>, String)>(1024); // (packet, iface_name)
             let downstream_key = key.clone();
+            let downstream_active_sockets = active_sockets.clone();
+            let downstream_all_sockets = all_sockets.clone();
 
             for (iface_name, socket) in all_sockets.iter() {
                 let tx_clone = tx.clone();
@@ -417,21 +490,56 @@ async fn main() -> anyhow::Result<()> {
                         Ok(header) => {
                             // Handle Probe packets (echoes from the server)
                             if header.packet_type == PacketType::Probe {
+                                let mut should_mark_up = false;
+
+                                // --- Start of stats lock ---
                                 let mut stats_guard = udp_to_tun_stats.lock().await;
                                 if let Some(stats) = stats_guard.get_mut(&iface_name) {
                                     if let Some(sent_at) =
                                         stats.in_flight_probes.remove(&header.sequence_number)
                                     {
-                                        let rtt = sent_at.elapsed();
                                         stats.probes_received += 1;
-                                        stats.rtt = rtt;
-                                        stats.status = health::LinkStatus::Up;
+                                        stats.rtt = sent_at.elapsed();
+                                        stats.consecutive_failures = 0; // Reset on success
+
+                                        if stats.status != health::LinkStatus::Up {
+                                            stats.status = health::LinkStatus::Up;
+                                            should_mark_up = true; // Signal recovery
+                                        }
                                         debug!(
                                             "Probe echo from {} (seq={}): RTT: {:?}",
-                                            iface_name, header.sequence_number, rtt
+                                            iface_name, header.sequence_number, stats.rtt
                                         );
                                     } else {
                                         warn!("Received unexpected probe echo from {} (seq={}), no matching sent probe found.", iface_name, header.sequence_number);
+                                    }
+                                }
+                                drop(stats_guard);
+                                // --- End of stats lock ---
+
+                                // Update active links list if the link has recovered
+                                if should_mark_up {
+                                    info!(
+                                        "Link {} has recovered and is now UP. Adding back to active pool.",
+                                        iface_name
+                                    );
+                                    if let Some(socket_to_add) = downstream_all_sockets
+                                        .iter()
+                                        .find(|(name, _)| name == &iface_name)
+                                    {
+                                        let mut active_links_guard =
+                                            downstream_active_sockets.write().await;
+                                        if !active_links_guard
+                                            .iter()
+                                            .any(|(name, _)| name == &iface_name)
+                                        {
+                                            active_links_guard.push(socket_to_add.clone());
+                                            info!(
+                                                "Link {} re-added. Active links: {}",
+                                                iface_name,
+                                                active_links_guard.len()
+                                            );
+                                        }
                                     }
                                 }
                                 continue; // Probes are not forwarded to TUN
