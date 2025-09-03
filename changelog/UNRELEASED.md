@@ -35,6 +35,7 @@ This document tracks upcoming changes and features that are planned for future r
 
 ## Changed
 - **Refactored Configuration**: Simplified the existing configuration structs and `config.toml` file to align with the SRS (SI-2). The complex, nested structure has been replaced with a flatter, more direct mapping of requirements. (T2)
+- **Optimized Data Path**: Refactored the client's packet processing hot path to use in-place encryption and pre-allocated buffers, significantly reducing memory allocations and CPU usage. This addresses the performance requirements of NFR-PERF-03. (T18)
 
 ## Deprecated
 - N/A
@@ -79,7 +80,7 @@ This document tracks upcoming changes and features that are planned for future r
 
 ### Phase 6: Performance & Optimization (Planned)
 - **T17**: Performance Profiling - `To Do`
-- **T18**: Memory & CPU Optimization - `To Do`
+- **T18**: Memory & CPU Optimization - `Done`
 - **T19**: Concurrency Optimization - `To Do`
 
 ### Phase 7: Testing & Quality Assurance (Planned)

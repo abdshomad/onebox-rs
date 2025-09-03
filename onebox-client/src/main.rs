@@ -5,6 +5,7 @@ use network_interface::{NetworkInterface, NetworkInterfaceConfig};
 pub mod health;
 use chacha20poly1305::Key;
 use nix::sys::socket::{setsockopt, sockopt::BindToDevice};
+use onebox_core::crypto::{decrypt_in_place, encrypt_in_place};
 use onebox_core::packet::{PacketHeader, PacketType};
 use onebox_core::prelude::*;
 use onebox_core::types::ClientId;
@@ -346,7 +347,6 @@ async fn main() -> anyhow::Result<()> {
                         let sent_at = std::time::Instant::now();
 
                         if prober_socket.send(&probe_packet).await.is_ok() {
-                            debug!("Sent probe seq={} on {}", seq, prober_iface_name);
                             // Re-acquire lock briefly to update sent stats
                             let mut stats_guard = prober_stats.lock().await;
                             if let Some(stats) = stats_guard.get_mut(&prober_iface_name) {
@@ -371,40 +371,56 @@ async fn main() -> anyhow::Result<()> {
             let tun_to_udp_seq = sequence_number.clone();
             let tun_to_udp_key = key.clone();
             let tun_to_udp = tokio::spawn(async move {
-                let mut tun_buf = [0u8; 2048];
+                // Optimized buffer handling to avoid allocations in the hot path.
+                const MTU: usize = 1500;
+                const HEADER_SIZE: usize = PacketHeader::size();
+                const TAG_SIZE: usize = 16; // ChaCha20-Poly1305 tag size
+                let mut packet_buf = [0u8; HEADER_SIZE + MTU + TAG_SIZE];
+
                 loop {
-                    match tun_reader.read(&mut tun_buf).await {
-                        Ok(len) => {
-                            if len == 0 {
+                    // The payload part of the buffer where TUN data will be read into.
+                    let payload_buf = &mut packet_buf[HEADER_SIZE..];
+
+                    match tun_reader.read(payload_buf).await {
+                        Ok(plaintext_len) => {
+                            if plaintext_len == 0 {
                                 continue;
                             }
 
                             let seq = tun_to_udp_seq.fetch_add(1, Ordering::Relaxed);
-                            let header =
-                                PacketHeader::new(seq, PacketType::Data, ClientId::default());
 
-                            // Encrypt the payload
-                            let plaintext = &tun_buf[..len];
-                            let ciphertext = match encrypt(&tun_to_udp_key, plaintext, seq) {
-                                Ok(ct) => ct,
+                            // Encrypt the payload in-place.
+                            let ciphertext_len = match encrypt_in_place(
+                                &tun_to_udp_key,
+                                payload_buf,
+                                plaintext_len,
+                                seq,
+                            ) {
+                                Ok(len) => len,
                                 Err(e) => {
-                                    error!("Encryption failed: {}", e);
+                                    error!("In-place encryption failed: {}", e);
                                     continue;
                                 }
                             };
 
-                            let packet_with_header = [
-                                bincode::serialize(&header).unwrap().as_slice(),
-                                &ciphertext[..],
-                            ]
-                            .concat();
+                            // Create the header and serialize it into the start of the buffer.
+                            let header =
+                                PacketHeader::new(seq, PacketType::Data, ClientId::default());
+                            if let Err(e) =
+                                bincode::serialize_into(&mut packet_buf[..HEADER_SIZE], &header)
+                            {
+                                error!("Header serialization failed: {}", e);
+                                continue;
+                            }
+
+                            // The final packet to send includes the header and the encrypted payload.
+                            let packet_to_send = &packet_buf[..HEADER_SIZE + ciphertext_len];
 
                             // Get the current list of active links
                             let active_links_guard = tun_to_udp_active_sockets.read().await;
 
                             if active_links_guard.is_empty() {
                                 warn!("No active links available to send packet. Waiting...");
-                                // Drop the lock explicitly before sleeping
                                 drop(active_links_guard);
                                 tokio::time::sleep(Duration::from_secs(1)).await;
                                 continue;
@@ -414,19 +430,12 @@ async fn main() -> anyhow::Result<()> {
                                 % active_links_guard.len();
                             let (iface_name, socket) = &active_links_guard[index];
 
-                            debug!(
-                                "Seq {}, sending {} encrypted bytes via {}",
-                                seq,
-                                packet_with_header.len(),
-                                iface_name
-                            );
-
                             // Clone the socket to move it out of the lock guard before await
                             let socket_clone = socket.clone();
                             let iface_name_clone = iface_name.clone();
                             drop(active_links_guard);
 
-                            if let Err(e) = socket_clone.send(&packet_with_header).await {
+                            if let Err(e) = socket_clone.send(packet_to_send).await {
                                 error!("Error sending to UDP via {}: {}", iface_name_clone, e);
                             }
                         }
@@ -439,7 +448,9 @@ async fn main() -> anyhow::Result<()> {
             });
 
             // Downstream path: Read from all sockets, decrypt, and write to a single TUN writer
-            let (tx, mut rx) = tokio::sync::mpsc::channel::<(Vec<u8>, String)>(1024); // (packet, iface_name)
+            const DOWNSTREAM_BUF_SIZE: usize = 2048;
+            let (tx, mut rx) =
+                tokio::sync::mpsc::channel::<(usize, [u8; DOWNSTREAM_BUF_SIZE], String)>(1024);
             let downstream_key = key.clone();
             let downstream_active_sockets = active_sockets.clone();
             let downstream_all_sockets = all_sockets.clone();
@@ -449,13 +460,11 @@ async fn main() -> anyhow::Result<()> {
                 let iface_name_clone = iface_name.clone();
                 let socket_clone = socket.clone();
                 tokio::spawn(async move {
-                    let mut buf = vec![0u8; 2048];
+                    let mut buf = [0u8; DOWNSTREAM_BUF_SIZE];
                     loop {
                         match socket_clone.recv(&mut buf).await {
                             Ok(len) => {
-                                let packet_data = buf[..len].to_vec();
-                                let packet_info = (packet_data, iface_name_clone.clone());
-                                if tx_clone.send(packet_info).await.is_err() {
+                                if tx_clone.send((len, buf, iface_name_clone.clone())).await.is_err() {
                                     error!(
                                         "MPSC channel closed, cannot send packet from {}",
                                         iface_name_clone
@@ -476,8 +485,10 @@ async fn main() -> anyhow::Result<()> {
             // Task 2: Read from MPSC, parse header, decrypt payload, write to TUN
             let udp_to_tun_stats = link_stats.clone();
             let udp_to_tun = tokio::spawn(async move {
-                while let Some((packet_with_header, iface_name)) = rx.recv().await {
-                    match bincode::deserialize::<PacketHeader>(&packet_with_header) {
+                while let Some((len, mut packet_buf, iface_name)) = rx.recv().await {
+                    let packet_with_header = &mut packet_buf[..len];
+
+                    match bincode::deserialize::<PacketHeader>(packet_with_header) {
                         Ok(header) => {
                             // Handle Probe packets (echoes from the server)
                             if header.packet_type == PacketType::Probe {
@@ -497,10 +508,6 @@ async fn main() -> anyhow::Result<()> {
                                             stats.status = health::LinkStatus::Up;
                                             should_mark_up = true; // Signal recovery
                                         }
-                                        debug!(
-                                            "Probe echo from {} (seq={}): RTT: {:?}",
-                                            iface_name, header.sequence_number, stats.rtt
-                                        );
                                     } else {
                                         warn!("Received unexpected probe echo from {} (seq={}), no matching sent probe found.", iface_name, header.sequence_number);
                                     }
@@ -551,19 +558,14 @@ async fn main() -> anyhow::Result<()> {
                                 error!("Runt packet received, smaller than header size.");
                                 continue;
                             }
-                            let ciphertext = &packet_with_header[header_size..];
+                            let ciphertext_buf = &mut packet_with_header[header_size..];
 
-                            match decrypt(&downstream_key, ciphertext, header.sequence_number) {
+                            match decrypt_in_place(&downstream_key, ciphertext_buf, header.sequence_number) {
                                 Ok(plaintext) => {
-                                    if let Err(e) = tun_writer.write_all(&plaintext).await {
+                                    if let Err(e) = tun_writer.write_all(plaintext).await {
                                         error!("Error writing to TUN: {}", e);
                                         break;
                                     }
-                                    debug!(
-                                        "Decrypted and wrote {} bytes to TUN from {}",
-                                        plaintext.len(),
-                                        iface_name
-                                    );
                                 }
                                 Err(e) => {
                                     warn!("Packet decryption failed (likely auth error): {}", e);

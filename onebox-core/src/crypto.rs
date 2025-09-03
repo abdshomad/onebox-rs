@@ -1,8 +1,8 @@
 //! Cryptographic operations for onebox-rs
 
-use aead::{Aead, KeyInit};
+use aead::{Aead, AeadInPlace, KeyInit};
 use anyhow::Result;
-use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
+use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce, Tag as ChaChaTag};
 
 const KEY_CONTEXT: &str = "onebox-rs-encryption-key-context";
 
@@ -46,9 +46,106 @@ pub fn decrypt(key: &Key, ciphertext: &[u8], sequence_number: u64) -> Result<Vec
     Ok(plaintext)
 }
 
+/// Encrypts a plaintext payload in-place using ChaCha20-Poly1305.
+/// The buffer must have enough capacity to hold the plaintext plus the 16-byte authentication tag.
+/// Returns the size of the final ciphertext (plaintext + tag).
+pub fn encrypt_in_place(
+    key: &Key,
+    buffer: &mut [u8],
+    plaintext_len: usize,
+    sequence_number: u64,
+) -> Result<usize> {
+    let cipher = ChaCha20Poly1305::new(key);
+    let nonce = generate_nonce(sequence_number);
+    let tag = cipher
+        .encrypt_in_place_detached(&nonce, b"", &mut buffer[..plaintext_len])
+        .map_err(|e| anyhow::anyhow!("In-place encryption failed: {}", e))?;
+
+    // Append the tag to the buffer
+    let ciphertext_len = plaintext_len + tag.len();
+    buffer[plaintext_len..ciphertext_len].copy_from_slice(&tag);
+
+    Ok(ciphertext_len)
+}
+
+/// Decrypts a ciphertext payload in-place using ChaCha20-Poly1305.
+/// The buffer is modified to contain the plaintext.
+/// Returns a slice referencing the plaintext within the buffer.
+pub fn decrypt_in_place<'a>(
+    key: &Key,
+    buffer: &'a mut [u8],
+    sequence_number: u64,
+) -> Result<&'a [u8]> {
+    let cipher = ChaCha20Poly1305::new(key);
+    let nonce = generate_nonce(sequence_number);
+
+    // The tag is the last 16 bytes of the buffer
+    let tag_pos = buffer
+        .len()
+        .checked_sub(16)
+        .ok_or_else(|| anyhow::anyhow!("Ciphertext buffer is too short to contain a tag"))?;
+    let (msg, tag_bytes) = buffer.split_at_mut(tag_pos);
+    let tag = ChaChaTag::clone_from_slice(tag_bytes);
+
+    cipher
+        .decrypt_in_place_detached(&nonce, b"", msg, &tag)
+        .map_err(|e| anyhow::anyhow!("In-place decryption failed (authentication error): {}", e))?;
+
+    // The plaintext is the message part of the buffer (without the tag)
+    Ok(&msg[..tag_pos])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_encrypt_decrypt_in_place_roundtrip() {
+        let psk = "in-place-roundtrip-psk";
+        let key = derive_key(psk);
+        let plaintext = b"hello onebox in-place!";
+        let sequence_number = 500;
+
+        let mut buffer = [0u8; 1024];
+        buffer[..plaintext.len()].copy_from_slice(plaintext);
+
+        // Encrypt
+        let ciphertext_len =
+            encrypt_in_place(&key, &mut buffer, plaintext.len(), sequence_number).unwrap();
+        assert_eq!(ciphertext_len, plaintext.len() + 16); // 16 is the tag size
+
+        // Decrypt
+        let decrypted_plaintext_slice =
+            decrypt_in_place(&key, &mut buffer[..ciphertext_len], sequence_number).unwrap();
+
+        assert_eq!(decrypted_plaintext_slice, plaintext);
+    }
+
+    #[test]
+    fn test_decrypt_in_place_tampered() {
+        let psk = "in-place-tamper-psk";
+        let key = derive_key(psk);
+        let plaintext = b"a secret message for in-place";
+        let sequence_number = 600;
+
+        let mut buffer = [0u8; 1024];
+        buffer[..plaintext.len()].copy_from_slice(plaintext);
+
+        // Encrypt
+        let ciphertext_len =
+            encrypt_in_place(&key, &mut buffer, plaintext.len(), sequence_number).unwrap();
+
+        // Tamper with the ciphertext
+        buffer[0] ^= 0xff;
+
+        // Decrypt should fail
+        let result = decrypt_in_place(&key, &mut buffer[..ciphertext_len], sequence_number);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("In-place decryption failed"));
+    }
 
     #[test]
     fn test_derive_key_length() {
