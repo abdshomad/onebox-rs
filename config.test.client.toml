@@ -1,0 +1,10 @@
+# Test config for onebox-client with correct structure and key
+preshared_key = "dev-psk"
+log_level = "debug" # Use debug for more verbose logging during test
+
+[client]
+server_address = "10.0.0.2"
+server_port = 8080
+tun_name = "onebox0"
+tun_ip = "10.8.0.2"
+tun_netmask = "255.255.255.0"
