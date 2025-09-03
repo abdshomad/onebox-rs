@@ -14,3 +14,6 @@ anyhow = { workspace = true }
 thiserror = { workspace = true }
 nix = { workspace = true }
 toml = "0.8"
+aead = { workspace = true }
+blake3 = { workspace = true }
+chacha20poly1305 = { workspace = true }

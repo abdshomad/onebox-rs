@@ -5,6 +5,7 @@
 //! and utilities needed by both the client and server components.
 
 pub mod config;
+pub mod crypto;
 pub mod error;
 pub mod packet;
 pub mod types;
@@ -15,5 +16,5 @@ pub use types::*;
 
 /// Re-export commonly used items
 pub mod prelude {
-    pub use super::{config::*, error::*, packet::*, types::*};
+    pub use super::{config::*, crypto::*, error::*, packet::*, types::*};
 }
