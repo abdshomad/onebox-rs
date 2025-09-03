@@ -33,11 +33,14 @@ pub enum PacketType {
     /// Keep-alive/probe packet for link health monitoring
     Probe = 0x02,
 
-    /// Authentication packet
-    Auth = 0x03,
+    /// Authentication request packet
+    AuthRequest = 0x03,
+
+    /// Authentication response packet
+    AuthResponse = 0x04,
 
     /// Control packet for session management
-    Control = 0x04,
+    Control = 0x05,
 }
 
 impl Default for PacketHeader {
@@ -121,13 +124,13 @@ mod tests {
 
     #[test]
     fn serde_roundtrip_packet_header() {
-        let mut header = PacketHeader::new(7, PacketType::Auth, ClientId(0xABCD));
+        let mut header = PacketHeader::new(7, PacketType::AuthRequest, ClientId(0xABCD));
         header.timestamp = 1234567890;
         header.reserved = 1;
         let json = serde_json::to_string(&header).unwrap();
         let de: PacketHeader = serde_json::from_str(&json).unwrap();
         assert_eq!(de.sequence_number, 7);
-        assert_eq!(de.packet_type, PacketType::Auth);
+        assert_eq!(de.packet_type, PacketType::AuthRequest);
         assert_eq!(de.timestamp, 1234567890);
         assert_eq!(de.client_id.0, 0xABCD);
         assert_eq!(de.reserved, 1);

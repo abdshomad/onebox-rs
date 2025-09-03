@@ -11,6 +11,11 @@ This document tracks upcoming changes and features that are planned for future r
 - **Client TUN Creation**: Implemented TUN interface creation and configuration on the client. (T6)
 - **Server TUN & Forwarding**: Implemented TUN interface creation, IP forwarding, and NAT masquerading on the server. (T7)
 - **End-to-End Tunnel**: Created a bidirectional data path between the client and server. The client reads packets from its TUN, sends them to the server via UDP, and the server writes them to its TUN. The reverse path is also implemented. (T8)
+- **Multi-Link Socket Binding**: Implemented logic in `onebox-client` to discover all valid WAN interfaces and bind a dedicated UDP socket to each one. (T9)
+- **Packet Distribution**: Implemented a round-robin algorithm to distribute outgoing packets across all active WAN sockets in `onebox-client`. Also implemented multi-socket listening for downstream traffic. (T10)
+- **Sequencing & Reassembly**: Added a `PacketHeader` with a sequence number to all upstream packets. Implemented a jitter buffer on the server to reorder packets, ensuring in-order delivery to the TUN interface. (T11)
+- **Symmetric Encryption**: Implemented end-to-end encryption for all tunnel traffic using ChaCha20-Poly1305. Keys are derived from the PSK using BLAKE3. This provides both confidentiality and per-packet authentication. (T12)
+- **Secure Handshake**: Implemented a simple handshake protocol. The client now sends an `AuthRequest` to establish a session, and the server validates it before accepting data packets. (T13)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -38,7 +43,7 @@ This document tracks upcoming changes and features that are planned for future r
 - N/A
 
 ## Security
-- N/A
+- Implemented ChaCha20-Poly1305 AEAD encryption for all tunnel traffic, authenticated by a key derived from the PSK. (T12)
 
 ## Development Status
 
@@ -56,13 +61,13 @@ This document tracks upcoming changes and features that are planned for future r
 
 ### Phase 3: Core Bonding Engine (Planned)
 - **T8**: E2E Ping Tunnel - `Done`
-- **T9**: Multi-Link Socket Binding - `To Do`
-- **T10**: Packet Distribution - `To Do`
-- **T11**: Sequencing & Reassembly - `To Do`
+- **T9**: Multi-Link Socket Binding - `Done`
+- **T10**: Packet Distribution - `Done`
+- **T11**: Sequencing & Reassembly - `Done`
 
 ### Phase 4: Security & Authentication (Planned)
-- **T12**: Authentication & Encryption - `To Do`
-- **T13**: Secure Handshake - `To Do`
+- **T12**: Authentication & Encryption - `Done`
+- **T13**: Secure Handshake - `Done`
 
 ### Phase 5: Link Health & Failover (Planned)
 - **T14**: Link Health Probing - `To Do`

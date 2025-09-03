@@ -1,14 +1,143 @@
 //! onebox-client - Client binary for the onebox-rs internet bonding solution
 
 use clap::{Parser, Subcommand};
+use network_interface::{NetworkInterface, NetworkInterfaceConfig};
+use nix::sys::socket::{setsockopt, sockopt::BindToDevice};
+use onebox_core::packet::{PacketHeader, PacketType};
 use onebox_core::prelude::*;
-use std::net::Ipv4Addr;
+use onebox_core::types::ClientId;
+use std::ffi::OsString;
+use std::net::{Ipv4Addr, SocketAddr};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UdpSocket;
 use tokio_tun::TunBuilder;
-use tracing::{debug, error, info, Level};
+use chacha20poly1305::Key;
+use tracing::{debug, error, info, Level, warn};
+
+async fn perform_handshake(
+    socket: &UdpSocket,
+    key: &Key,
+    client_id: ClientId,
+) -> anyhow::Result<()> {
+    info!("Performing handshake...");
+    let auth_request_header = PacketHeader::new(0, PacketType::AuthRequest, client_id);
+    let header_bytes = bincode::serialize(&auth_request_header)?;
+    // The payload for an auth request can be minimal.
+    let encrypted_payload = encrypt(key, b"AUTH_REQUEST", 0)?;
+    let request_packet = [header_bytes.as_slice(), encrypted_payload.as_slice()].concat();
+
+    for i in 0..5 {
+        info!("Sending AuthRequest (attempt {})...", i + 1);
+        socket.send(&request_packet).await?;
+
+        let mut recv_buf = [0u8; 2048];
+        match tokio::time::timeout(std::time::Duration::from_secs(2), socket.recv(&mut recv_buf)).await {
+            Ok(Ok(len)) => {
+                let response_packet = &recv_buf[..len];
+                if let Ok(header) = bincode::deserialize::<PacketHeader>(response_packet) {
+                    if header.packet_type == PacketType::AuthResponse {
+                        info!("Handshake successful: received AuthResponse from server.");
+                        return Ok(());
+                    }
+                }
+                warn!("Received unexpected packet during handshake.");
+            }
+            Ok(Err(e)) => return Err(anyhow::anyhow!("Socket recv error during handshake: {}", e)),
+            Err(_) => {
+                warn!("Handshake timeout, retrying...");
+                continue;
+            }
+        }
+    }
+
+    Err(anyhow::anyhow!("Handshake failed after multiple attempts."))
+}
+
+
+/// Discovers WAN interfaces and binds a UDP socket to each one.
+/// Returns a vector containing the interface name and the bound socket.
+async fn discover_and_bind_sockets(
+    server_addr: SocketAddr,
+) -> anyhow::Result<Vec<(String, Arc<UdpSocket>)>> {
+    info!("Discovering WAN interfaces and binding sockets...");
+    let mut sockets = Vec::new();
+    let ifaces = NetworkInterface::show()?;
+
+    for iface in ifaces {
+        // Skip loopback, virtual interfaces, and interfaces that are down.
+        if iface.name.starts_with("lo")
+            || iface.name.contains("docker")
+            || iface.name.contains("veth")
+        {
+            debug!("Skipping interface {}: loopback/virtual", iface.name);
+            continue;
+        }
+
+        for addr in &iface.addr {
+            let ip_addr = addr.ip();
+            if ip_addr.is_ipv4() {
+                let ipv4 = match ip_addr {
+                    std::net::IpAddr::V4(ip) => ip,
+                    _ => continue,
+                };
+
+                // Per FR-C-03, we need public or CGNAT addresses.
+                // We will filter out private and link-local addresses.
+                let is_private = ipv4.is_private();
+                let is_link_local = ipv4.is_link_local();
+                // CGNAT range is 100.64.0.0/10
+                let is_cgnat =
+                    ipv4.octets()[0] == 100 && (ipv4.octets()[1] >= 64 && ipv4.octets()[1] <= 127);
+
+                if !is_private && !is_link_local || is_cgnat {
+                    info!(
+                        "Found potential WAN interface {} with IP {}",
+                        iface.name, ipv4
+                    );
+
+                    // Bind a socket to 0.0.0.0:0 to let the OS choose the port
+                    let socket = UdpSocket::bind("0.0.0.0:0").await?;
+
+                    // Per SI-1 and FR-C-04, bind this socket to the specific device
+                    let device_name_str = iface.name.as_str();
+                    let device_name = OsString::from(device_name_str);
+                    if let Err(e) = setsockopt(&socket, BindToDevice, &device_name) {
+                        error!("Failed to bind socket to device {}: {}", iface.name, e);
+                        continue; // Don't add this socket if we couldn't bind it.
+                    }
+
+                    info!("Successfully bound UDP socket to device {}", iface.name);
+
+                    // Connect the socket to the server's address for easy sending
+                    socket.connect(server_addr).await?;
+                    info!(
+                        "Socket for {} connected to server at {}",
+                        iface.name, server_addr
+                    );
+
+                    sockets.push((iface.name.clone(), Arc::new(socket)));
+
+                    // We only need one socket per interface, so we can break inner loop
+                    break;
+                }
+            }
+        }
+    }
+
+    if sockets.is_empty() {
+        error!("No suitable WAN interfaces found. Please check network configuration.");
+        return Err(anyhow::anyhow!("No WAN interfaces found."));
+    }
+
+    info!(
+        "Successfully bound {} sockets to WAN interfaces.",
+        sockets.len()
+    );
+    Ok(sockets)
+}
 
 #[derive(Parser)]
 #[command(name = "onebox-client")]
@@ -21,7 +150,6 @@ struct Cli {
     /// Configuration file path
     #[arg(short, long, default_value = "config.toml")]
     config: String,
-
 }
 
 #[derive(Subcommand)]
@@ -52,7 +180,7 @@ async fn main() -> anyhow::Result<()> {
         Ok(config) => config,
         Err(e) => {
             // Can't use tracing here because it's not initialized yet.
-            eprintln!("Failed to load configuration: {}", e);
+            eprintln!("Failed to load configuration: {e}");
             return Err(anyhow::anyhow!("Configuration error: {}", e));
         }
     };
@@ -97,37 +225,81 @@ async fn main() -> anyhow::Result<()> {
             set_default_route(tun_name)?;
 
             // The server address to connect to.
-            let server_addr = format!(
+            let server_addr_str = format!(
                 "{}:{}",
                 config.client.server_address, config.client.server_port
             );
+            let server_addr: SocketAddr = server_addr_str.parse()?;
             info!("Will connect to server at {}", server_addr);
 
-            // Bind to a local UDP port.
-            let socket = UdpSocket::bind("0.0.0.0:0").await.map_err(|e| {
-                error!("Failed to bind local UDP socket: {}", e);
-                anyhow::anyhow!(e)
-            })?;
-            // Connect the socket to the server's address. This allows `send` and `recv` syscalls.
-            socket.connect(&server_addr).await?;
-            info!("UDP socket connected to server at {}", server_addr);
+            // Discover and bind sockets to all available WAN interfaces.
+            let all_sockets = Arc::new(discover_and_bind_sockets(server_addr).await?);
+
+            if all_sockets.is_empty() {
+                // discover_and_bind_sockets already logs an error, but we should exit.
+                return Err(anyhow::anyhow!("No sockets bound, cannot proceed."));
+            }
+
+            // Derive the encryption key from the PSK
+            let key = derive_key(&config.preshared_key);
+            let key = Arc::new(key);
+
+            // Perform handshake on the first socket to establish the session
+            let (iface_name, handshake_socket) = all_sockets.first().unwrap();
+            info!("Performing handshake over interface '{}'", iface_name);
+            perform_handshake(handshake_socket, &key, ClientId(1)).await?; // Using ClientId(1) for now
+
+            info!("Handshake complete. Starting data plane...");
+
+            let round_robin_counter = Arc::new(AtomicUsize::new(0));
+            let sequence_number = Arc::new(AtomicU64::new(0)); // Upstream sequence number
 
             let (mut tun_reader, mut tun_writer) = tokio::io::split(tun);
-            let socket = Arc::new(socket);
 
-            // Task 1: Read from TUN and send to UDP
-            let tun_to_udp_socket = socket.clone();
+            // Task 1: Read from TUN, encrypt, prepend header, and send
+            let tun_to_udp_sockets = all_sockets.clone();
+            let tun_to_udp_counter = round_robin_counter.clone();
+            let tun_to_udp_seq = sequence_number.clone();
+            let tun_to_udp_key = key.clone();
             let tun_to_udp = tokio::spawn(async move {
-                let mut buf = [0u8; 2048];
+                let mut tun_buf = [0u8; 2048];
                 loop {
-                    match tun_reader.read(&mut buf).await {
+                    match tun_reader.read(&mut tun_buf).await {
                         Ok(len) => {
-                            debug!("Read {} bytes from TUN", len);
-                            if let Err(e) = tun_to_udp_socket.send(&buf[..len]).await {
-                                error!("Error sending to UDP: {}", e);
-                                break;
+                            if len == 0 {
+                                continue;
                             }
-                            debug!("Sent {} bytes to server", len);
+
+                            let seq = tun_to_udp_seq.fetch_add(1, Ordering::Relaxed);
+                            let header =
+                                PacketHeader::new(seq, PacketType::Data, ClientId::default());
+
+                            // Encrypt the payload
+                            let plaintext = &tun_buf[..len];
+                            let ciphertext = match encrypt(&tun_to_udp_key, plaintext, seq) {
+                                Ok(ct) => ct,
+                                Err(e) => {
+                                    error!("Encryption failed: {}", e);
+                                    continue;
+                                }
+                            };
+
+                            let header_bytes = bincode::serialize(&header).unwrap();
+                            let packet_with_header = [&header_bytes[..], &ciphertext[..]].concat();
+
+                            let index = tun_to_udp_counter.fetch_add(1, Ordering::Relaxed)
+                                % tun_to_udp_sockets.len();
+                            let (iface_name, socket) = &tun_to_udp_sockets[index];
+
+                            debug!(
+                                "Seq {}, sending {} encrypted bytes via {}",
+                                seq,
+                                packet_with_header.len(),
+                                iface_name
+                            );
+                            if let Err(e) = socket.send(&packet_with_header).await {
+                                error!("Error sending to UDP via {}: {}", iface_name, e);
+                            }
                         }
                         Err(e) => {
                             error!("TUN read error: {}", e);
@@ -137,26 +309,78 @@ async fn main() -> anyhow::Result<()> {
                 }
             });
 
-            // Task 2: Read from UDP and send to TUN
-            let udp_to_tun_socket = socket.clone();
-            let udp_to_tun = tokio::spawn(async move {
-                let mut buf = [0u8; 2048];
-                loop {
-                    match udp_to_tun_socket.recv(&mut buf).await {
-                        Ok(len) => {
-                            debug!("Received {} bytes from server", len);
-                            if let Err(e) = tun_writer.write_all(&buf[..len]).await {
-                                error!("Error writing to TUN: {}", e);
+            // Downstream path: Read from all sockets, decrypt, and write to a single TUN writer
+            let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<u8>>(1024);
+            let downstream_key = key.clone();
+
+            for (iface_name, socket) in all_sockets.iter() {
+                let tx_clone = tx.clone();
+                let iface_name_clone = iface_name.clone();
+                let socket_clone = socket.clone();
+                tokio::spawn(async move {
+                    let mut buf = vec![0u8; 2048];
+                    loop {
+                        match socket_clone.recv(&mut buf).await {
+                            Ok(len) => {
+                                if tx_clone.send(buf[..len].to_vec()).await.is_err() {
+                                    error!(
+                                        "MPSC channel closed, cannot send packet from {}",
+                                        iface_name_clone
+                                    );
+                                    break;
+                                }
+                            }
+                            Err(e) => {
+                                error!("UDP receive error on {}: {}", iface_name_clone, e);
                                 break;
                             }
-                            debug!("Wrote {} bytes to TUN", len);
+                        }
+                    }
+                });
+            }
+            drop(tx);
+
+            // Task 2: Read from MPSC, parse header, decrypt payload, write to TUN
+            let udp_to_tun = tokio::spawn(async move {
+                while let Some(packet_with_header) = rx.recv().await {
+                    match bincode::deserialize::<PacketHeader>(&packet_with_header) {
+                        Ok(header) => {
+                            if header.packet_type != PacketType::Data {
+                                // This is not a data packet, so we ignore it in the data plane.
+                                // It might be a probe response, etc., to be handled elsewhere later.
+                                continue;
+                            }
+
+                            let header_size =
+                                bincode::serialized_size(&header).unwrap_or(0) as usize;
+                            if packet_with_header.len() < header_size {
+                                error!("Runt packet received, smaller than header size.");
+                                continue;
+                            }
+                            let ciphertext = &packet_with_header[header_size..];
+
+                            match decrypt(&downstream_key, ciphertext, header.sequence_number) {
+                                Ok(plaintext) => {
+                                    if let Err(e) = tun_writer.write_all(&plaintext).await {
+                                        error!("Error writing to TUN: {}", e);
+                                        break;
+                                    }
+                                    debug!(
+                                        "Decrypted and wrote {} bytes to TUN",
+                                        plaintext.len()
+                                    );
+                                }
+                                Err(e) => {
+                                    warn!("Packet decryption failed (likely auth error): {}", e);
+                                }
+                            }
                         }
                         Err(e) => {
-                            error!("UDP receive error: {}", e);
-                            break;
+                            error!("Failed to deserialize packet header: {}", e);
                         }
                     }
                 }
+                info!("MPSC channel closed. UDP->TUN task finished.");
             });
 
             tokio::select! {
