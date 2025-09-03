@@ -248,9 +248,10 @@ async fn main() -> anyhow::Result<()> {
             let key = Arc::new(key);
 
             // Perform handshake on the first socket to establish the session
+            let client_id = ClientId(1); // Define a consistent client ID
             let (iface_name, handshake_socket) = all_sockets.first().unwrap();
             info!("Performing handshake over interface '{}'", iface_name);
-            perform_handshake(handshake_socket, &key, ClientId(1)).await?; // Using ClientId(1) for now
+            perform_handshake(handshake_socket, &key, client_id).await?;
 
             info!("Handshake complete. Starting data plane...");
 
@@ -270,7 +271,6 @@ async fn main() -> anyhow::Result<()> {
                 let prober_stats = link_stats.clone();
                 let prober_iface_name = iface_name.clone();
                 let prober_active_sockets = active_sockets.clone();
-                let client_id = ClientId(1); // This should be consistent with the handshake
 
                 tokio::spawn(async move {
                     const PROBE_INTERVAL: Duration = Duration::from_secs(2);
@@ -405,7 +405,7 @@ async fn main() -> anyhow::Result<()> {
 
                             // Create the header and serialize it into the start of the buffer.
                             let header =
-                                PacketHeader::new(seq, PacketType::Data, ClientId::default());
+                                PacketHeader::new(seq, PacketType::Data, client_id);
                             if let Err(e) =
                                 bincode::serialize_into(&mut packet_buf[..HEADER_SIZE], &header)
                             {
