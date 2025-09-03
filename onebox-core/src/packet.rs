@@ -74,7 +74,7 @@ impl PacketHeader {
     }
 
     /// Get the size of the packet header in bytes
-    pub fn size() -> usize {
+    pub const fn size() -> usize {
         // sequence_number (u64) + timestamp (u64) + client_id (u128) + packet_type (u32 as repr) + reserved (u32)
         std::mem::size_of::<u64>()
             + std::mem::size_of::<u64>()

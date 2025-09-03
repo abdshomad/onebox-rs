@@ -58,7 +58,7 @@ This document contains the complete list of tasks required to implement the oneb
 | ID | Task Description | Related SRS | Related Tests | Status | Priority |
 |----|------------------|--------------|---------------|---------|----------|
 | **T17** | **Performance Profiling**: Profile the application under load and identify bottlenecks. | NFR-PERF-01, 02, 03 | TS3.1, TS3.2, TS3.3 | `Blocked` | Medium |
-| **T18** | **Memory & CPU Optimization**: Optimize memory usage and CPU consumption to meet performance NFRs. | NFR-PERF-03 | TS3.3 | `To Do` | Medium |
+| **T18** | **Memory & CPU Optimization**: Optimize memory usage and CPU consumption to meet performance NFRs. | NFR-PERF-03 | TS3.3 | `Done` | Medium |
 | **T19** | **Concurrency Optimization**: Optimize the async task model for better throughput and lower latency. | NFR-PERF-01, 02 | TS3.1, TS3.2 | `To Do` | Medium |
 
 ### Phase 7: Testing & Quality Assurance
