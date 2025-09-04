@@ -3,6 +3,29 @@
 # Exit on any error
 set -e
 
+# --- Tool Installation ---
+# Ensure necessary tools are installed.
+echo "Ensuring required tools (kmod, tcpdump) are installed..."
+if ! command -v modprobe &> /dev/null || ! command -v lsmod &> /dev/null; then
+    echo "'kmod' (for modprobe/lsmod) not found. Installing..."
+    sudo apt-get update && sudo apt-get install -y kmod
+fi
+if ! command -v tcpdump &> /dev/null; then
+    echo "tcpdump not found. Installing..."
+    sudo apt-get update && sudo apt-get install -y tcpdump
+fi
+
+# --- Kernel Module Check ---
+# Attempt to load 'netem' for latency simulation. This may fail in minimal container envs.
+echo "Attempting to load 'netem' kernel module for latency tests..."
+# The '|| true' prevents the script from exiting if modprobe fails.
+sudo modprobe sch_netem || echo "Warning: Could not load 'sch_netem'. Latency-based tests will be skipped."
+if lsmod 2>/dev/null | grep -q "sch_netem"; then
+    echo "'sch_netem' is loaded."
+else
+    echo "'sch_netem' is not available. Latency tests will be skipped."
+fi
+
 # --- Cleanup previous setup ---
 echo "Cleaning up previous network namespaces and interfaces..."
 sudo ip netns del client 2>/dev/null || true
