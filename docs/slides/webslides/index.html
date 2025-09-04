@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en" prefix="og: http://ogp.me/ns#">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>onebox-rs | WebSlides</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,100i,300,300i,400,400i,700,700i%7CMaitree:200,300,400,600,700&amp;subset=latin-ext" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" media="all" href="https://cdn.jsdelivr.net/npm/webslides@1.0.0/static/css/webslides.css">
+  </head>
+  <body>
+    <main role="main">
+      <article id="webslides" class="vertical">
+        <!-- Slide 1 -->
+        <section>
+          <div class="wrap">
+            <h1>onebox-rs</h1>
+            <h3>High-performance, secure internet bonding</h3>
+            <p>A presentation by Jules</p>
+          </div>
+        </section>
+        <!-- Slide 2 -->
+        <section>
+          <div class="wrap">
+            <h2>The Problem</h2>
+            <ul>
+              <li>Low Bandwidth</li>
+              <li>Poor Reliability</li>
+              <li>Lack of Redundancy</li>
+              <li>High Cost of dedicated lines</li>
+            </ul>
+          </div>
+        </section>
+        <!-- Slide 3 -->
+        <section>
+          <div class="wrap">
+            <h2>The Solution: onebox-rs</h2>
+            <p>A Rust-based internet bonding solution that aggregates multiple internet connections into a single, resilient virtual connection.</p>
+          </div>
+        </section>
+        <!-- Slide 4 -->
+        <section>
+          <div class="wrap">
+            <h2>Features</h2>
+          </div>
+        </section>
+        <!-- Slide 5 -->
+        <section>
+          <div class="wrap">
+            <h3>Internet Bonding</h3>
+            <p>Combine multiple WAN connections (Wi-Fi, Ethernet, Cellular) for increased bandwidth.</p>
+          </div>
+        </section>
+        <!-- Slide 6 -->
+        <section>
+          <div class="wrap">
+            <h3>Seamless Failover</h3>
+            <p>Automatic failover when connections drop, with zero packet loss.</p>
+          </div>
+        </section>
+        <!-- Slide 7 -->
+        <section>
+          <div class="wrap">
+            <h3>End-to-End Encryption</h3>
+            <p>ChaCha20-Poly1305 encryption for all tunnel traffic.</p>
+          </div>
+        </section>
+        <!-- Slide 8 -->
+        <section>
+          <div class="wrap">
+            <h3>High Performance</h3>
+            <p>Built with Rust and Tokio for minimal CPU overhead.</p>
+          </div>
+        </section>
+        <!-- Slide 9 -->
+        <section>
+          <div class="wrap">
+            <h2>Architecture</h2>
+          </div>
+        </section>
+        <!-- Slide 10 -->
+        <section>
+          <div class="wrap">
+            <h3>Client (`onebox-client`)</h3>
+            <ul>
+              <li>Runs on Linux-based single-board computers (e.g., Raspberry Pi)</li>
+              <li>Creates a TUN interface to capture all outgoing traffic</li>
+              <li>Distributes packets across multiple connections</li>
+            </ul>
+          </div>
+        </section>
+        <!-- Slide 11 -->
+        <section>
+          <div class="wrap">
+            <h3>Server (`onebox-server`)</h3>
+            <ul>
+              <li>Runs on a cloud VPS with a public IP</li>
+              <li>Receives encrypted packets from clients</li>
+              <li>Reassembles packets and forwards them to the internet</li>
+            </ul>
+          </div>
+        </section>
+        <!-- Slide 12 -->
+        <section>
+          <div class="wrap">
+            <img src="https://i.imgur.com/9y7B42s.png" alt="Architecture Diagram">
+          </div>
+        </section>
+        <!-- Slide 13 -->
+        <section>
+          <div class="wrap">
+            <h2>Technical Details</h2>
+            <ul>
+              <li>Language: Rust</li>
+              <li>Async Runtime: Tokio</li>
+              <li>Protocol: Custom UDP-based protocol</li>
+              <li>Encryption: ChaCha20-Poly1305</li>
+              <li>Configuration: TOML</li>
+            </ul>
+          </div>
+        </section>
+        <!-- Slide 14 -->
+        <section>
+          <div class="wrap">
+            <h2>Future Work</h2>
+          </div>
+        </section>
+        <!-- Slide 15 -->
+        <section>
+          <div class="wrap">
+            <h3>Web Dashboard</h3>
+            <p>A simple web interface for real-time monitoring and configuration.</p>
+          </div>
+        </section>
+        <!-- Slide 16 -->
+        <section>
+          <div class="wrap">
+            <h3>Advanced Bonding Modes</h3>
+            <p>Implement different policies, such as "reliability first" or "cost-aware".</p>
+          </div>
+        </section>
+        <!-- Slide 17 -->
+        <section>
+          <div class="wrap">
+            <h3>WireGuard Integration</h3>
+            <p>Explore using WireGuard as the underlying transport.</p>
+          </div>
+        </section>
+        <!-- Slide 18 -->
+        <section>
+          <div class="wrap">
+            <h3>Cross-Platform Client</h3>
+            <p>Expand client support to other operating systems like macOS and Windows.</p>
+          </div>
+        </section>
+        <!-- Slide 19 -->
+        <section>
+          <div class="wrap">
+            <h1>The End</h1>
+            <p>Created with WebSlides</p>
+          </div>
+        </section>
+      </article>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/webslides@1.0.0/static/js/webslides.js"></script>
+    <script>
+      window.ws = new WebSlides();
+    </script>
+  </body>
+</html>
