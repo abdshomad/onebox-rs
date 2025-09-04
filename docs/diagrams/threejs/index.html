@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three.js Animation - onebox-rs Overview</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+
+        // 1. Scene, Camera, and Renderer
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 15;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
+
+        // 3. Create Nodes (3D Objects)
+        const nodeMaterialClient = new THREE.MeshPhongMaterial({ color: 0xf900f9 });
+        const nodeMaterialServer = new THREE.MeshPhongMaterial({ color: 0xccccff });
+        const nodeMaterialWAN = new THREE.MeshPhongMaterial({ color: 0xeeeeee });
+
+        const clientGeo = new THREE.BoxGeometry(2, 1, 1);
+        const client = new THREE.Mesh(clientGeo, nodeMaterialClient);
+        client.position.x = -6;
+        scene.add(client);
+
+        const serverGeo = new THREE.BoxGeometry(2, 1, 1);
+        const server = new THREE.Mesh(serverGeo, nodeMaterialServer);
+        server.position.x = 6;
+        scene.add(server);
+
+        const wan1 = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 1), nodeMaterialWAN);
+        wan1.position.y = 3;
+        scene.add(wan1);
+
+        const wan2 = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 1), nodeMaterialWAN);
+        wan2.position.y = -3;
+        scene.add(wan2);
+
+        // 4. Create Edges (Lines)
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xaaaaaa });
+
+        function createLine(startVec, endVec) {
+            const points = [startVec, endVec];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            return new THREE.Line(geometry, lineMaterial);
+        }
+
+        scene.add(createLine(client.position, wan1.position));
+        scene.add(createLine(client.position, wan2.position));
+        scene.add(createLine(wan1.position, server.position));
+        scene.add(createLine(wan2.position, server.position));
+
+        // 5. Animation
+        const packetMaterial = new THREE.MeshBasicMaterial({ color: 0x00aaff });
+        const packetGeo = new THREE.SphereGeometry(0.15, 8, 8);
+
+        const packets = [];
+
+        function createPacket(startPos, endPos) {
+            const packet = new THREE.Mesh(packetGeo, packetMaterial);
+            packet.position.copy(startPos);
+            packets.push({ mesh: packet, start: startPos, end: endPos, progress: 0 });
+            scene.add(packet);
+        }
+
+        setInterval(() => {
+            createPacket(client.position, wan1.position);
+            createPacket(client.position, wan2.position);
+        }, 1000);
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            // Animate packets
+            for (let i = packets.length - 1; i >= 0; i--) {
+                const p = packets[i];
+                p.progress += delta * 0.5; // speed
+
+                if (p.progress >= 1) {
+                    // If packet reaches a WAN, send it to the server
+                    if (p.end === wan1.position || p.end === wan2.position) {
+                         p.start = p.end;
+                         p.end = server.position;
+                         p.progress = 0;
+                    } else {
+                        // If packet reaches server, remove it
+                        scene.remove(p.mesh);
+                        packets.splice(i, 1);
+                    }
+                } else {
+                    p.mesh.position.lerpVectors(p.start, p.end, p.progress);
+                }
+            }
+
+            // Rotate the whole scene for a nice effect
+            scene.rotation.y += delta * 0.1;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
