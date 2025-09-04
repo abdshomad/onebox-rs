@@ -22,6 +22,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **Integration Test Framework**: Added a framework for end-to-end integration tests using network namespaces. Implemented the first test case (TS1.1 - Ping) which is currently blocked by a network-level issue. (T21)
 - **Security Tests**: Implemented integration tests for security requirements (TS4.1, TS4.2), validating authentication rejection with an invalid PSK and verifying data confidentiality with `tcpdump`. (T23)
 - **Failover Tests**: Implemented an integration test for hard link failure (TS2.1), which validates that the client correctly marks a failed link as "Down". The test for latency degradation (TS2.3) is also included but will be skipped if the environment does not support it. (T24)
+- **User Documentation**: Created a comprehensive `README.md` file with detailed instructions for building, installing, configuring, and using the `onebox-rs` client and server. (T25)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -33,7 +34,7 @@ This document tracks upcoming changes and features that are planned for future r
 ### Infrastructure Improvements
 - **Testing Framework**: Unit and integration test suite
 - **Performance Metrics**: Monitoring and profiling capabilities
-- **Documentation**: Comprehensive API and usage documentation
+- **Documentation**: Comprehensive API documentation
 - **CI/CD Pipeline**: Automated testing and deployment
 
 ## Changed
@@ -100,7 +101,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **T24**: Failover Tests - `To Do`
 
 ### Phase 8: Documentation & Deployment (Planned)
-- **T25**: User Documentation - `To Do`
+- **T25**: User Documentation - `Done`
 - **T26**: Developer Documentation - `To Do`
 - **T27**: Deployment Scripts - `To Do`
 - **T28**: Final Testing - `To Do`
@@ -130,7 +131,6 @@ This document tracks upcoming changes and features that are planned for future r
 - **Security Tests**: Vulnerability assessment and penetration testing
 
 ## Documentation Goals
-- **User Guide**: Comprehensive setup and usage instructions
 - **API Reference**: Complete code documentation
 - **Architecture Guide**: System design and implementation details
 - **Deployment Guide**: Production deployment best practices
