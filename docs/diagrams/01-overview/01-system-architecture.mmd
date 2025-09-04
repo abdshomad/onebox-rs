@@ -6,8 +6,8 @@ graph TD
 
     subgraph "onebox-client Device"
         B -- Intercepts & Encapsulates --> C{TUNNEL};
-        C -- Round-Robin --> D[WAN 1 <br> (e.g., Ethernet)];
-        C -- Round-Robin --> E[WAN 2 <br> (e.g., Cellular)];
+        C -- Round-Robin --> D["WAN 1 <br> (e.g., Ethernet)"];
+        C -- Round-Robin --> E["WAN 2 <br> (e.g., Cellular)"];
     end
 
     subgraph "Public Internet"
