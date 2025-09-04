@@ -26,6 +26,7 @@ This document records the step-by-step testing process performed on the onebox-r
 | **Configuration** | ✅ PASS | config.toml loads and displays correctly |
 | **Code Quality** | ✅ PASS | Passes formatting and linting checks |
 | **Implementation** | ⚠️ PARTIAL | Foundation complete, networking pending |
+| **Security Tests** | ⏳ PENDING | Security tests not yet implemented |
 
 ## Detailed Test Steps
 
@@ -260,6 +261,47 @@ cargo build
 - Build completed in 0.93s
 - All three crates compiled successfully
 - No build errors or warnings
+
+### Phase 8: Security Test Validation
+
+#### Step 8.1: Test Authentication Rejection (TS4.1)
+```bash
+# Configure client with an invalid PSK
+# Attempt to start the client and pass traffic
+```
+
+**Expected Result**: ⚠️ `PENDING`
+- Client fails to establish a session
+- Server logs show "authentication failure"
+- `ping 8.8.8.8` must fail
+
+**Actual Result**: ⚠️ **PENDING**
+- Test not yet implemented (corresponds to T23).
+
+#### Step 8.2: Test Data Confidentiality (TS4.2)
+```bash
+# Start a file transfer
+# Capture traffic on a WAN interface using Wireshark/tcpdump
+```
+
+**Expected Result**: ⚠️ `PENDING`
+- UDP packet payloads are fully encrypted
+- No plaintext from original IP packets is visible
+
+**Actual Result**: ⚠️ **PENDING**
+- Test not yet implemented (corresponds to T23).
+
+#### Step 8.3: Test Malformed Packet Resilience (TS4.3)
+```bash
+# Send random/malformed UDP packets to the server port
+```
+
+**Expected Result**: ⚠️ `PENDING`
+- Server process does not crash
+- Server silently drops invalid packets
+
+**Actual Result**: ⚠️ **PENDING**
+- Test not yet implemented (corresponds to T23).
 
 ## Test Findings
 
