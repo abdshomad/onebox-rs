@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>onebox-rs Architecture Animation</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; }
+        svg { border: 1px solid #eee; }
+        .client-box { fill: #f9f; }
+        .server-box { fill: #ccf; }
+        .text { font-size: 14px; text-anchor: middle; }
+        .line { stroke: #333; stroke-width: 2; }
+        .arrow-marker { fill: #333; }
+    </style>
+</head>
+<body>
+    <h1>onebox-rs Architecture</h1>
+    <svg id="architecture-svg" width="800" height="500"></svg>
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+    <script>
+        const svg = document.getElementById('architecture-svg');
+
+        // Create elements
+        const client = createRect(100, 200, 'onebox-client', 'client-box');
+        const server = createRect(600, 200, 'onebox-server', 'server-box');
+        const lan = createText(50, 150, 'User\'s LAN');
+        const internet = createText(750, 250, 'Internet');
+        const wan1 = createText(350, 150, 'WAN 1');
+        const wan2 = createText(350, 250, 'WAN 2');
+
+        // Helper to create SVG elements
+        function createRect(x, y, label, cssClass) {
+            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', x - 75);
+            rect.setAttribute('y', y - 40);
+            rect.setAttribute('width', 150);
+            rect.setAttribute('height', 80);
+            rect.setAttribute('class', cssClass);
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', y);
+            text.setAttribute('class', 'text');
+            text.textContent = label;
+            group.appendChild(rect);
+            group.appendChild(text);
+            svg.appendChild(group);
+            return group;
+        }
+
+        function createText(x, y, content) {
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', y);
+            text.setAttribute('class', 'text');
+            text.textContent = content;
+            svg.appendChild(text);
+            return text;
+        }
+
+        function createArrow(x1, y1, x2, y2) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x1);
+            line.setAttribute('y1', y1);
+            line.setAttribute('x2', x1); // Start with zero length
+            line.setAttribute('y2', y1);
+            line.setAttribute('class', 'line');
+            line.setAttribute('marker-end', 'url(#arrow)');
+            svg.appendChild(line);
+            return line;
+        }
+
+        // Create arrow marker
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'arrow');
+        marker.setAttribute('viewBox', '0 0 10 10');
+        marker.setAttribute('refX', '5');
+        marker.setAttribute('refY', '5');
+        marker.setAttribute('markerWidth', '6');
+        marker.setAttribute('markerHeight', '6');
+        marker.setAttribute('orient', 'auto-start-reverse');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+        path.setAttribute('class', 'arrow-marker');
+        marker.appendChild(path);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+
+        // Animation timeline
+        const tl = anime.timeline({
+            easing: 'easeOutExpo',
+            duration: 750
+        });
+
+        tl.add({ targets: [client, server, lan, internet, wan1, wan2], opacity: [0, 1] });
+
+        const line1 = createArrow(100, 150, 100, 200);
+        tl.add({ targets: line1, x2: 100, y2: 200 });
+
+        const line2 = createArrow(175, 200, 350, 150);
+        tl.add({ targets: line2, x2: 350, y2: 150 });
+
+        const line3 = createArrow(175, 200, 350, 250);
+        tl.add({ targets: line3, x2: 350, y2: 250 });
+
+        const line4 = createArrow(350, 150, 600, 200);
+        tl.add({ targets: line4, x2: 600, y2: 200 });
+
+        const line5 = createArrow(350, 250, 600, 200);
+        tl.add({ targets: line5, x2: 600, y2: 200 });
+
+        const line6 = createArrow(675, 200, 750, 250);
+        tl.add({ targets: line6, x2: 750, y2: 250 });
+
+    </script>
+</body>
+</html>
