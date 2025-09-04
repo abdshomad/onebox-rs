@@ -138,7 +138,9 @@ async fn main() -> anyhow::Result<()> {
                 .expect("Failed to parse TUN netmask");
 
             info!("Ensuring old TUN device 'onebox0' is cleaned up...");
-            let _ = std::process::Command::new("ip").args(["link", "delete", "onebox0"]).status(); // Ignore result
+            let _ = std::process::Command::new("ip")
+                .args(["link", "delete", "onebox0"])
+                .status(); // Ignore result
             info!("Creating TUN device 'onebox0'...");
             let tun = match TunBuilder::new()
                 .name("onebox0")
