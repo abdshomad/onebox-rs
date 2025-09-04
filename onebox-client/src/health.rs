@@ -15,7 +15,7 @@ pub enum LinkStatus {
 }
 
 /// The number of consecutive probe failures before a link is marked as Down.
-pub const MAX_CONSECUTIVE_FAILURES: u32 = 3;
+pub const MAX_CONSECUTIVE_FAILURES: u32 = 4;
 
 /// Holds health statistics for a single network link.
 #[derive(Debug, Clone)]

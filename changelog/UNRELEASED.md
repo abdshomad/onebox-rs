@@ -21,6 +21,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **Unit Tests**: Added comprehensive unit tests for the `onebox-core` library, achieving over 98% code coverage. (T20)
 - **Integration Test Framework**: Added a framework for end-to-end integration tests using network namespaces. Implemented the first test case (TS1.1 - Ping) which is currently blocked by a network-level issue. (T21)
 - **Security Tests**: Implemented integration tests for security requirements (TS4.1, TS4.2), validating authentication rejection with an invalid PSK and verifying data confidentiality with `tcpdump`. (T23)
+- **Failover Tests**: Implemented an integration test for hard link failure (TS2.1), which validates that the client correctly marks a failed link as "Down". The test for latency degradation (TS2.3) is also included but will be skipped if the environment does not support it. (T24)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication
@@ -51,6 +52,8 @@ This document tracks upcoming changes and features that are planned for future r
 - Fixed a bug where the server would send all downstream data packets with a default `ClientId(0)` instead of the authenticated client's ID.
 - Fixed a critical routing bug where the server would not install a route for the client's TUN network, causing return packets to leak out the physical interface instead of being sent back through the tunnel.
 - Fixed the end-to-end integration test (`test_ping_e2e`) by resolving a series of cascading failures in the test environment, including I/O blocking, incorrect NAT rules, flawed network topology, and kernel parameter misconfigurations (Reverse Path Filtering). This unblocks further integration and performance testing.
+- **Fixed the `status` command**: The `onebox-client status` command no longer shows mock data. It now uses a Unix Domain Socket to communicate with the running client process and display live, real-time link statistics.
+- **Fixed failover detection logic**: Corrected a bug where the health checker would not count send failures as a link failure, and adjusted probing intervals to meet the 2-second failover requirement specified in the SRS.
 
 ## Security
 - Implemented ChaCha20-Poly1305 AEAD encryption for all tunnel traffic, authenticated by a key derived from the PSK. (T12)
