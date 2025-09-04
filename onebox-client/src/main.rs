@@ -173,6 +173,67 @@ async fn handle_status_connection(
     Ok(())
 }
 
+async fn handle_probe_response(
+    header: &PacketHeader,
+    iface_name: &str,
+    stats_mutex: Arc<Mutex<HashMap<String, LinkStats>>>,
+    all_sockets: &Arc<Vec<(String, Arc<UdpSocket>)>>,
+    active_sockets: &Arc<RwLock<Vec<(String, Arc<UdpSocket>)>>>,
+) {
+    let mut should_mark_up = false;
+    let mut stats_guard = stats_mutex.lock().await;
+    if let Some(stats) = stats_guard.get_mut(iface_name) {
+        if let Some(sent_at) = stats.in_flight_probes.remove(&header.sequence_number) {
+            stats.probes_received += 1;
+            stats.rtt = sent_at.elapsed();
+            stats.consecutive_failures = 0;
+            if stats.status != health::LinkStatus::Up {
+                stats.status = health::LinkStatus::Up;
+                should_mark_up = true;
+            }
+        }
+    }
+    drop(stats_guard);
+
+    if should_mark_up {
+        info!(
+            "Link {} has recovered and is now UP. Adding back to active pool.",
+            iface_name
+        );
+        if let Some(socket_to_add) = all_sockets.iter().find(|(name, _)| name == iface_name) {
+            let mut active_links_guard = active_sockets.write().await;
+            if !active_links_guard.iter().any(|(name, _)| name == iface_name) {
+                active_links_guard.push(socket_to_add.clone());
+                info!(
+                    "Link {} re-added. Active links: {}",
+                    iface_name,
+                    active_links_guard.len()
+                );
+            }
+        }
+    }
+}
+
+async fn handle_data_packet(
+    header: &PacketHeader,
+    packet_buf: &mut [u8],
+    len: usize,
+    key: &Key,
+    tun_writer: &mut tokio::io::WriteHalf<tokio_tun::Tun>,
+) -> anyhow::Result<()> {
+    let header_size = bincode::serialized_size(header).unwrap_or(0) as usize;
+    if len < header_size {
+        return Err(anyhow::anyhow!("Packet too small for header"));
+    }
+    let ciphertext_buf = &mut packet_buf[header_size..len];
+    if let Ok(plaintext) = decrypt_in_place(key, ciphertext_buf, header.sequence_number) {
+        if tun_writer.write_all(plaintext).await.is_err() {
+            return Err(anyhow::anyhow!("Failed to write to TUN device"));
+        }
+    }
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
@@ -362,36 +423,64 @@ async fn main() -> anyhow::Result<()> {
                 const HEADER_SIZE: usize = PacketHeader::size();
                 const TAG_SIZE: usize = 16;
                 let mut packet_buf = [0u8; HEADER_SIZE + MTU + TAG_SIZE];
+
                 loop {
                     let payload_buf = &mut packet_buf[HEADER_SIZE..];
-                    if let Ok(plaintext_len) = tun_reader.read(payload_buf).await {
-                        if plaintext_len == 0 { continue; }
-                        let seq = tun_to_udp_seq.fetch_add(1, Ordering::Relaxed);
-                        let ciphertext_len = match encrypt_in_place(&tun_to_udp_key, payload_buf, plaintext_len, seq) {
-                            Ok(len) => len,
-                            Err(_) => continue,
-                        };
-                        let header = PacketHeader::new(seq, PacketType::Data, client_id);
-                        bincode::serialize_into(&mut packet_buf[..HEADER_SIZE], &header).unwrap();
-                        let packet_to_send = &packet_buf[..HEADER_SIZE + ciphertext_len];
-                        let active_links_guard = tun_to_udp_active_sockets.read().await;
-                        if active_links_guard.is_empty() {
-                            drop(active_links_guard);
-                            tokio::time::sleep(Duration::from_secs(1)).await;
+                    match tun_reader.read(payload_buf).await {
+                        Ok(0) | Err(_) => {
+                            // End of stream or a read error, either way we can't proceed with this packet.
                             continue;
                         }
-                        let index = tun_to_udp_counter.fetch_add(1, Ordering::Relaxed) % active_links_guard.len();
-                        let (_iface_name, socket) = &active_links_guard[index];
-                        let _ = socket.send(packet_to_send).await;
+                        Ok(plaintext_len) => {
+                            let seq = tun_to_udp_seq.fetch_add(1, Ordering::Relaxed);
+
+                            // Encrypt the payload in place
+                            let ciphertext_len = match encrypt_in_place(
+                                &tun_to_udp_key,
+                                payload_buf,
+                                plaintext_len,
+                                seq,
+                            ) {
+                                Ok(len) => len,
+                                Err(e) => {
+                                    warn!("Encryption failed: {}", e);
+                                    continue; // Skip this packet
+                                }
+                            };
+
+                            // Prepare the full packet (Header + Encrypted Payload)
+                            let header = PacketHeader::new(seq, PacketType::Data, client_id);
+                            bincode::serialize_into(&mut packet_buf[..HEADER_SIZE], &header)
+                                .expect("Serialization into a fixed-size buffer should not fail");
+                            let packet_to_send = &packet_buf[..HEADER_SIZE + ciphertext_len];
+
+                            // Send the packet over a chosen link using round-robin
+                            let active_links_guard = tun_to_udp_active_sockets.read().await;
+                            if active_links_guard.is_empty() {
+                                drop(active_links_guard);
+                                warn!("No active links available to send data. Waiting...");
+                                tokio::time::sleep(Duration::from_secs(1)).await;
+                                continue;
+                            }
+
+                            let index = tun_to_udp_counter.fetch_add(1, Ordering::Relaxed)
+                                % active_links_guard.len();
+                            let (iface_name, socket) = &active_links_guard[index];
+
+                            if let Err(e) = socket.send(packet_to_send).await {
+                                warn!("Failed to send packet on {}: {}", iface_name, e);
+                            }
+                        }
                     }
                 }
             });
 
+            // Downstream Data Plane: UDP -> TUN
+            // One task per socket to receive, a single task to process and write to TUN
             const DOWNSTREAM_BUF_SIZE: usize = 2048;
-            let (tx, mut rx) = tokio::sync::mpsc::channel::<(usize, [u8; DOWNSTREAM_BUF_SIZE], String)>(1024);
-            let downstream_key = key.clone();
-            let downstream_active_sockets = active_sockets.clone();
-            let downstream_all_sockets = all_sockets.clone();
+            let (tx, mut rx) =
+                tokio::sync::mpsc::channel::<(usize, [u8; DOWNSTREAM_BUF_SIZE], String)>(1024);
+
             for (iface_name, socket) in all_sockets.iter() {
                 let tx_clone = tx.clone();
                 let iface_name_clone = iface_name.clone();
@@ -399,48 +488,51 @@ async fn main() -> anyhow::Result<()> {
                 tokio::spawn(async move {
                     let mut buf = [0u8; DOWNSTREAM_BUF_SIZE];
                     while let Ok(len) = socket_clone.recv(&mut buf).await {
-                        if tx_clone.send((len, buf, iface_name_clone.clone())).await.is_err() { break; }
+                        if tx_clone.send((len, buf, iface_name_clone.clone())).await.is_err() {
+                            // Channel closed, receiver is gone.
+                            break;
+                        }
                     }
                 });
             }
-            drop(tx);
+            drop(tx); // Drop the original sender so the channel closes when all clones are dropped.
+
             let udp_to_tun_stats = link_stats.clone();
+            let downstream_key = key.clone();
+            let downstream_active_sockets = active_sockets.clone();
+            let downstream_all_sockets = all_sockets.clone();
+
             let udp_to_tun = tokio::spawn(async move {
                 while let Some((len, mut packet_buf, iface_name)) = rx.recv().await {
                     if let Ok(header) = bincode::deserialize::<PacketHeader>(&packet_buf[..len]) {
-                        if header.packet_type == PacketType::Probe {
-                            let mut should_mark_up = false;
-                            let mut stats_guard = udp_to_tun_stats.lock().await;
-                            if let Some(stats) = stats_guard.get_mut(&iface_name) {
-                                if let Some(sent_at) = stats.in_flight_probes.remove(&header.sequence_number) {
-                                    stats.probes_received += 1;
-                                    stats.rtt = sent_at.elapsed();
-                                    stats.consecutive_failures = 0;
-                                    if stats.status != health::LinkStatus::Up {
-                                        stats.status = health::LinkStatus::Up;
-                                        should_mark_up = true;
-                                    }
+                        match header.packet_type {
+                            PacketType::Probe => {
+                                handle_probe_response(
+                                    &header,
+                                    &iface_name,
+                                    udp_to_tun_stats.clone(),
+                                    &downstream_all_sockets,
+                                    &downstream_active_sockets,
+                                )
+                                .await;
+                            }
+                            PacketType::Data => {
+                                if let Err(e) = handle_data_packet(
+                                    &header,
+                                    &mut packet_buf,
+                                    len,
+                                    &downstream_key,
+                                    &mut tun_writer,
+                                )
+                                .await
+                                {
+                                    warn!("Error handling data packet: {}. Stopping downstream task.", e);
+                                    break; // Exit loop on critical error (e.g., TUN write failure)
                                 }
                             }
-                            drop(stats_guard);
-                            if should_mark_up {
-                                info!("Link {} has recovered and is now UP. Adding back to active pool.", iface_name);
-                                if let Some(socket_to_add) = downstream_all_sockets.iter().find(|(name, _)| name == &iface_name) {
-                                    let mut active_links_guard = downstream_active_sockets.write().await;
-                                    if !active_links_guard.iter().any(|(name, _)| name == &iface_name) {
-                                        active_links_guard.push(socket_to_add.clone());
-                                        info!("Link {} re-added. Active links: {}", iface_name, active_links_guard.len());
-                                    }
-                                }
+                            _ => {
+                                // Ignore other packet types like AuthRequest, etc.
                             }
-                            continue;
-                        }
-                        if header.packet_type != PacketType::Data { continue; }
-                        let header_size = bincode::serialized_size(&header).unwrap_or(0) as usize;
-                        if packet_buf[..len].len() < header_size { continue; }
-                        let ciphertext_buf = &mut packet_buf[header_size..len];
-                        if let Ok(plaintext) = decrypt_in_place(&downstream_key, ciphertext_buf, header.sequence_number) {
-                            if tun_writer.write_all(plaintext).await.is_err() { break; }
                         }
                     }
                 }
