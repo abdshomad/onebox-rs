@@ -1,0 +1,10 @@
+# Test config for onebox-client with a bad preshared key
+preshared_key = "bad-psk"
+log_level = "debug"
+
+[client]
+server_address = "10.0.0.3"
+server_port = 8080
+tun_name = "onebox0"
+tun_ip = "10.8.0.2"
+tun_netmask = "255.255.255.0"

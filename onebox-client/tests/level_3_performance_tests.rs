@@ -12,7 +12,7 @@ use common::TestEnvironment;
 #[test]
 #[ignore = "Test skipped due to sandbox environment limitations (apt-get timeout) preventing installation of iperf3 and tc."]
 fn test_bandwidth_aggregation() {
-    let _env = TestEnvironment::new();
+    let _env = TestEnvironment::new(None, None);
     println!("--- SKIPPING Bandwidth Aggregation Test (TS3.1) due to environment limitations ---");
 
     // Allow time for the tunnel to establish fully

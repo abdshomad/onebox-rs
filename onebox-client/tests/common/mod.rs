@@ -12,7 +12,7 @@ use std::io::{BufRead, BufReader};
 use std::process::Stdio;
 
 impl TestEnvironment {
-    pub fn new() -> Self {
+    pub fn new(client_config: Option<&str>, server_config: Option<&str>) -> Self {
         println!("--- Setting up test environment ---");
 
         // Step 1: Clean and set up network
@@ -33,6 +33,10 @@ impl TestEnvironment {
             .expect("build failed");
         assert!(build_status.success());
 
+        // Determine config paths
+        let server_config_path = server_config.unwrap_or("../config.test.server.toml");
+        let client_config_path = client_config.unwrap_or("../config.test.client.toml");
+
         // Step 3: Start the server and wait for it to be ready
         println!("--- Starting onebox-server and waiting for it to be ready... ---");
         let mut server_process = Command::new("sudo")
@@ -42,7 +46,7 @@ impl TestEnvironment {
             .arg("server")
             .arg("../target/debug/onebox-server")
             .arg("--config")
-            .arg("../config.test.server.toml")
+            .arg(server_config_path)
             .arg("start")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -101,7 +105,7 @@ impl TestEnvironment {
             .arg("client")
             .arg("../target/debug/onebox-client")
             .arg("--config")
-            .arg("../config.test.client.toml")
+            .arg(client_config_path)
             .arg("start")
             .spawn()
             .expect("Failed to spawn client");

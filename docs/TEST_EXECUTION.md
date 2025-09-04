@@ -356,3 +356,53 @@ RUST_LOG=info ./target/debug/onebox-client --config ./config.toml start --foregr
 Expected Results:
 - Server prints listening address and "Received 12 bytes from ...".
 - Client prints "Sent 12 bytes to ..." and exits.
+
+### Phase 7: Automated Security Testing
+
+This phase documents the execution of automated integration tests for the security requirements.
+
+- **Date**: 2025-09-03
+- **Tester**: Jules (AI Agent)
+- **Test Environment**: Automated via `cargo test` in a sandboxed environment.
+- **Test Type**: Automated Integration Testing
+
+#### Step 7.1: Execute Security Test Suite
+```bash
+# Execute the full test suite, running sequentially to ensure
+# network environment stability.
+cargo test --workspace -- --test-threads=1
+```
+
+#### Step 7.2: Review Test Results
+
+**Expected Result**: ✅ SUCCESS
+- All tests in the workspace should pass.
+- The `test_authentication_rejection` test should pass, indicating that a client with a bad PSK cannot connect.
+- The `test_data_confidentiality` test should pass, indicating that packet payloads are successfully encrypted.
+
+**Actual Result**: ✅ **PASS**
+- All 30 tests in the workspace passed (1 was ignored).
+- `level_4_security_tests::test_authentication_rejection` ... **ok**
+- `level_4_security_tests::test_data_confidentiality` ... **ok**
+
+**Test Output Snippet (`test_authentication_rejection`):**
+```
+test test_authentication_rejection ... ok
+---
+[CLIENT LOGS] Handshake timeout, retrying...
+[PING STDOUT] 1 packets transmitted, 0 received, 100% packet loss...
+```
+*The test correctly showed the client failing to handshake and the ping failing.*
+
+**Test Output Snippet (`test_data_confidentiality`):**
+```
+test test_data_confidentiality ... ok
+---
+[TEST LOGS] --- Ping through tunnel was successful ---
+[TEST LOGS] --- Data confidentiality test successful (plaintext pattern not found) ---
+```
+*The test correctly showed the ping succeeding and the subsequent check for plaintext data in the packet capture also succeeding (by finding nothing).*
+
+## Conclusion for Phase 7
+
+The automated security tests confirm that the implemented authentication and encryption mechanisms are working as specified in NFR-SEC-01 and NFR-SEC-02. The system correctly rejects clients with invalid credentials and ensures tunnel traffic is confidential.
