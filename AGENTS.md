@@ -79,10 +79,11 @@ To ensure clarity and consistency, all documentation should adhere to the follow
     *   This directory should be organized into numbered sub-folders based on topic (e.g., `01-overview`, `02-protocol`).
     *   Diagrams should be embedded directly into the relevant Markdown files (e.g., `README.md`) for easy viewing.
 
-2.  **Animated Diagrams (Manim):**
-    *   For complex processes that benefit from animation, use the [Manim Community Edition](https://github.com/ManimCommunity/manim).
-    *   The Python source scripts for animations must be stored in the `docs/manim/` directory.
-    *   **Crucially, do not commit rendered video or GIF files to the repository.** These will be generated manually as needed to keep the repository size small.
+2.  **Animated Diagrams (D2):**
+    *   For complex processes that benefit from animation, use the [D2 language](https://d2lang.com/).
+    *   The D2 source scripts for diagrams should be stored in the `docs/diagrams/d2/` directory.
+    *   The D2 diagrams can be embedded directly in Markdown files.
+    *   **Crucially, do not commit rendered video, SVG, or GIF files to the repository.** These will be generated manually as needed to keep the repository size small.
 
 #### **7. Success Criteria**
 

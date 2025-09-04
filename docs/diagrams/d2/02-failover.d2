@@ -1,0 +1,22 @@
+diagram: sequence
+'onebox-client' -> 'onebox-server': Probe Link 1
+'onebox-server' -> 'onebox-client': Echo
+'onebox-client' -> 'onebox-server': Probe Link 2
+'onebox-server' -> 'onebox-client': Echo
+
+'note over onebox-client, onebox-server': 'Link 2 becomes unresponsive'
+
+'onebox-client' -> 'onebox-server': Probe Link 2 {style.stroke: red}
+'note left of onebox-client': 'Timeout... failures: 1'
+'onebox-client' -> 'onebox-server': Probe Link 2 {style.stroke: red}
+'note left of onebox-client': 'Timeout... failures: 2'
+'onebox-client' -> 'onebox-server': Probe Link 2 {style.stroke: red}
+'note left of onebox-client': 'Timeout... failures: 3'
+
+'onebox-client': {
+  'Link 2 marked as DOWN': {
+    style: {
+      fill: red
+    }
+  }
+}

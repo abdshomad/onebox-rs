@@ -551,3 +551,179 @@ This software requires root privileges to create TUN interfaces and modify routi
 ---
 
 **Made with ❤️ in Rust**
+
+## 🎨 D2 Diagrams
+
+Here are the same diagrams, rendered using D2.
+
+### System Architecture
+```d2
+direction: right
+
+Users_LAN: {
+  pc: 'PC / Laptop'
+  onebox_client: 'onebox-client'
+}
+
+onebox_client_Device: {
+  onebox_client -> TUNNEL
+  TUNNEL -> 'WAN 1'
+  TUNNEL -> 'WAN 2'
+}
+
+Public_Internet: {
+  'WAN 1' -> 'onebox-server'
+  'WAN 2' -> 'onebox-server'
+}
+
+Cloud_VPS: {
+  'onebox-server' -> TUNNEL
+  TUNNEL -> Internet
+}
+
+Users_LAN.pc -> Users_LAN.onebox_client
+onebox_client_Device.onebox_client -> Public_Internet.'WAN 1'
+onebox_client_Device.onebox_client -> Public_Internet.'WAN 2'
+Public_Internet.'onebox-server' -> Cloud_VPS.TUNNEL
+Cloud_VPS.TUNNEL -> Cloud_VPS.Internet
+
+'onebox-client'.style.fill: "#f9f"
+'onebox-server'.style.fill: "#ccf"
+```
+
+### Link Failover
+```d2
+diagram: sequence
+'onebox-client' -> 'onebox-server': Probe Link 1
+'onebox-server' -> 'onebox-client': Echo
+'onebox-client' -> 'onebox-server': Probe Link 2
+'onebox-server' -> 'onebox-client': Echo
+
+'note over onebox-client, onebox-server': 'Link 2 becomes unresponsive'
+
+'onebox-client' -> 'onebox-server': Probe Link 2 {style.stroke: red}
+'note left of onebox-client': 'Timeout... failures: 1'
+'onebox-client' -> 'onebox-server': Probe Link 2 {style.stroke: red}
+'note left of onebox-client': 'Timeout... failures: 2'
+'onebox-client' -> 'onebox-server': Probe Link 2 {style.stroke: red}
+'note left of onebox-client': 'Timeout... failures: 3'
+
+'onebox-client': {
+  'Link 2 marked as DOWN': {
+    style: {
+      fill: red
+    }
+  }
+}
+```
+
+### Packet Structure
+```d2
+direction: right
+
+UDP_Datagram: {
+  IP_Header -> UDP_Header
+  UDP_Header -> onebox_Packet_Header
+  onebox_Packet_Header -> Encrypted_Payload
+}
+
+onebox_Packet_Header: {
+  shape: package
+  'onebox Packet Header (Plaintext, Authenticated)': {
+    PacketType: 'e.g., Data, Probe, Auth'
+    ClientId
+    SequenceNumber
+  }
+}
+
+Encrypted_Payload: {
+  shape: package
+  'Encrypted Payload (ChaCha20-Poly1305)': {
+    'Original IP Packet from TUN'
+    '16-byte Authentication Tag'
+  }
+}
+```
+
+### Jitter Buffer
+```d2
+direction: down
+
+'Data Packet Arrives (Seq=S)' -> 'Insert (S, Packet) into BTreeMap Jitter Buffer'
+'Insert (S, Packet) into BTreeMap Jitter Buffer' -> 'Is this the first ever packet from this client?'
+
+'Is this the first ever packet from this client?' -> 'Set next_expected_seq = S': Yes
+'Is this the first ever packet from this client?' -> 'Loop while buffer contains packet with Seq == next_expected_seq': No
+
+'Set next_expected_seq = S' -> 'Loop while buffer contains packet with Seq == next_expected_seq'
+
+'Loop while buffer contains packet with Seq == next_expected_seq)' -> 'Remove packet from buffer': True
+'Remove packet from buffer' -> 'Write packet to TUN interface'
+'Write packet to TUN interface' -> 'Increment next_expected_seq'
+'Increment next_expected_seq' -> 'Loop while buffer contains packet with Seq == next_expected_seq'
+
+'Loop while buffer contains packet with Seq == next_expected_seq' -> 'Wait for more packets': False
+```
+
+### Client Logic Flow
+```d2
+direction: down
+
+Start -> 'Parse CLI Arguments'
+'Parse CLI Arguments' -> 'Load config.toml'
+'Load config.toml' -> 'Discover WAN Interfaces & Bind Sockets'
+'Discover WAN Interfaces & Bind Sockets' -> 'Create Virtual TUN Device'
+'Create Virtual TUN Device' -> 'Set System Default Route to TUN Device'
+'Set System Default Route to TUN Device' -> 'Perform Handshake with Server'
+'Perform Handshake with Server' -> 'Spawn Concurrent Tasks'
+
+'Spawn Concurrent Tasks' -> 'Task 1: TUN to UDP'
+'Spawn Concurrent Tasks' -> 'Task 2: UDP to TUN'
+'Spawn Concurrent Tasks' -> 'Task 3: Health Probers'
+'Spawn Concurrent Tasks' -> 'Task 4: Status Socket'
+```
+
+### Server Logic Flow
+```d2
+direction: down
+
+Start -> 'Parse CLI & Load Config'
+'Parse CLI & Load Config' -> 'Create TUN Device, Setup IP Forwarding & NAT'
+'Create TUN Device, Setup IP Forwarding & NAT' -> 'Bind Public UDP Socket'
+'Bind Public UDP Socket' -> 'Spawn Main Tasks'
+
+'Spawn Main Tasks' -> 'Task 1: Dispatcher'
+'Task 1: Dispatcher' -> 'Task 2: Worker Pool'
+'Spawn Main Tasks' -> 'Task 3: TUN to UDP'
+```
+
+### Link State Machine
+```d2
+direction: right
+
+Unknown -> Up: 'Successful Probe'
+Up -> Down: '4 Consecutive Probe Failures'
+Down -> Up: 'Successful Probe'
+Unknown -> Down: '4 Consecutive Probe Failures'
+```
+
+### Configuration Schema
+```d2
+'config.toml': {
+  log_level
+  preshared_key
+
+  client: {
+    server_address
+    server_port
+    tun_name
+    tun_ip
+    tun_netmask
+  }
+
+  server: {
+    listen_address
+    listen_port
+  }
+}
+```

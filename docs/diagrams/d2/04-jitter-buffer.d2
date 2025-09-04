@@ -1,0 +1,16 @@
+direction: down
+
+'Data Packet Arrives (Seq=S)' -> 'Insert (S, Packet) into BTreeMap Jitter Buffer'
+'Insert (S, Packet) into BTreeMap Jitter Buffer' -> 'Is this the first ever packet from this client?'
+
+'Is this the first ever packet from this client?' -> 'Set next_expected_seq = S': Yes
+'Is this the first ever packet from this client?' -> 'Loop while buffer contains packet with Seq == next_expected_seq': No
+
+'Set next_expected_seq = S' -> 'Loop while buffer contains packet with Seq == next_expected_seq'
+
+'Loop while buffer contains packet with Seq == next_expected_seq)' -> 'Remove packet from buffer': True
+'Remove packet from buffer' -> 'Write packet to TUN interface'
+'Write packet to TUN interface' -> 'Increment next_expected_seq'
+'Increment next_expected_seq' -> 'Loop while buffer contains packet with Seq == next_expected_seq'
+
+'Loop while buffer contains packet with Seq == next_expected_seq' -> 'Wait for more packets': False

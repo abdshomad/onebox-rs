@@ -1,0 +1,10 @@
+direction: down
+
+Start -> 'Parse CLI & Load Config'
+'Parse CLI & Load Config' -> 'Create TUN Device, Setup IP Forwarding & NAT'
+'Create TUN Device, Setup IP Forwarding & NAT' -> 'Bind Public UDP Socket'
+'Bind Public UDP Socket' -> 'Spawn Main Tasks'
+
+'Spawn Main Tasks' -> 'Task 1: Dispatcher'
+'Task 1: Dispatcher' -> 'Task 2: Worker Pool'
+'Spawn Main Tasks' -> 'Task 3: TUN to UDP'

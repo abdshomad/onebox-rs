@@ -1,0 +1,24 @@
+direction: right
+
+UDP_Datagram: {
+  IP_Header -> UDP_Header
+  UDP_Header -> onebox_Packet_Header
+  onebox_Packet_Header -> Encrypted_Payload
+}
+
+onebox_Packet_Header: {
+  shape: package
+  'onebox Packet Header (Plaintext, Authenticated)': {
+    PacketType: 'e.g., Data, Probe, Auth'
+    ClientId
+    SequenceNumber
+  }
+}
+
+Encrypted_Payload: {
+  shape: package
+  'Encrypted Payload (ChaCha20-Poly1305)': {
+    'Original IP Packet from TUN'
+    '16-byte Authentication Tag'
+  }
+}
