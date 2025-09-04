@@ -47,6 +47,9 @@ graph TD
 
     style B fill:#f9f,stroke:#333,stroke-width:2px
     style F fill:#ccf,stroke:#333,stroke-width:2px
+
+    click F "#-protocol" "Go to Protocol Details"
+    click B "#-common-workflows" "Go to Common Workflows"
 ```
 
 ### Client (`onebox-client`)
@@ -313,11 +316,15 @@ onebox-rs/
 ├── onebox-client/          # Client binary
 ├── onebox-server/          # Server binary
 ├── docs/                   # Documentation
-│   ├── diagrams/          # Mermaid JS diagrams
-│   ├── PRD.md             # Product Requirements Document
-│   ├── SRS.md             # Software Requirements Specification
-│   ├── TEST_PLAN.md       # Test scenarios and validation
-│   └── TASK_LIST.md       # Implementation roadmap
+│   ├── diagrams/
+│   │   ├── 01-overview/
+│   │   ├── 02-protocol/
+│   │   ├── 03-workflows/
+│   │   └── 04-testing/
+│   ├── PRD.md
+│   ├── SRS.md
+│   ├── TEST_PLAN.md
+│   └── TASK_LIST.md
 └── README.md               # This file
 ```
 
@@ -352,15 +359,61 @@ cargo test -- --nocapture
 
 ## 🧪 Testing
 
-The project includes comprehensive test scenarios covering:
+The project includes a comprehensive integration test suite that runs in an isolated network environment created with network namespaces.
 
-- **Basic Connectivity**: End-to-end ping tests
-- **Failover Scenarios**: Link failure and recovery
-- **Performance**: Throughput and latency measurements
-- **Security**: Authentication and encryption validation
-- **Stress Testing**: High-load scenarios
+### Test Environment Topology
 
-See `docs/TEST_PLAN.md` for detailed test procedures.
+The `setup_net_env.sh` script creates a virtual network of bridges and namespaces to simulate the client, the server, and the public internet. This allows for end-to-end testing without requiring a real cloud VPS or multiple physical network connections.
+
+```mermaid
+graph TD
+    subgraph "Host Machine"
+        direction LR
+        br_wan0["Bridge: br-wan0 <br> (Gateway: 192.168.10.1)"]
+        br_wan1["Bridge: br-wan1 <br> (Gateway: 192.168.20.1)"]
+        br_public["Bridge: br-public <br> (Gateway: 10.0.0.1)"]
+    end
+
+    subgraph "client Namespace"
+        direction TB
+        subgraph "Virtual Interfaces"
+            client_wan0["veth: wan0 <br> (192.168.10.2)"]
+            client_wan1["veth: wan1 <br> (192.168.20.2)"]
+        end
+        client_app["onebox-client Process"]
+    end
+
+    subgraph "server Namespace"
+        direction TB
+        server_eth0["veth: eth0 <br> (10.0.0.3)"]
+        server_app["onebox-server Process"]
+    end
+
+    subgraph "internet_endpoint Namespace"
+        direction TB
+        inet_eth0["veth: eth0 <br> (10.0.0.88)"]
+        inet_sim["Simulated Web Server"]
+    end
+
+    client_wan0 -- "Virtual Cable" --- br_wan0
+    client_wan1 -- "Virtual Cable" --- br_wan1
+    server_eth0 -- "Virtual Cable" --- br_public
+    inet_eth0 -- "Virtual Cable" --- br_public
+
+    style client_app fill:#f9f
+    style server_app fill:#ccf
+    style inet_sim fill:#9f9
+```
+
+### Running Tests
+
+To run all tests, including the integration tests, use the following command. The `--test-threads=1` flag is required to run the integration tests sequentially, as they manipulate shared network resources.
+
+```bash
+cargo test -- --test-threads=1
+```
+
+For more detailed test procedures, see `docs/TEST_PLAN.md`.
 
 ## 📚 Documentation
 
