@@ -21,38 +21,7 @@ onebox-rs aggregates multiple internet connections into a single, resilient virt
 
 ## 🏗️ Architecture
 
-onebox-rs consists of two main components: a client and a server. The client captures all network traffic from the local machine, sends it across multiple internet connections to the server, which then decrypts and forwards it to the public internet.
-
-*Click on the client or server nodes to see more detailed workflows.*
-
-```mermaid
-graph TD
-    subgraph "User's LAN"
-        A[PC / Laptop] -- All Traffic --> B(onebox-client);
-    end
-
-    subgraph "onebox-client Device"
-        B -- Intercepts & Encapsulates --> C{TUNNEL};
-        C -- Round-Robin --> D["WAN 1 <br> (e.g., Ethernet)"];
-        C -- Round-Robin --> E["WAN 2 <br> (e.g., Cellular)"];
-    end
-
-    subgraph "Public Internet"
-        D -- Encrypted UDP --> F{onebox-server};
-        E -- Encrypted UDP --> F;
-    end
-
-    subgraph "Cloud VPS"
-        F -- Reassembles & Decrypts --> G[TUNNEL];
-        G -- Forwards --> H[Internet];
-    end
-
-    style B fill:#f9f,stroke:#333,stroke-width:2px
-    style F fill:#ccf,stroke:#333,stroke-width:2px
-
-    click F "#-protocol" "Go to Protocol Details"
-    click B "#-common-workflows" "Go to Common Workflows"
-```
+onebox-rs consists of two main components:
 
 ### Client (`onebox-client`)
 - Runs on Linux-based single-board computers (e.g., Raspberry Pi)
@@ -67,196 +36,6 @@ graph TD
 - Reassembles packets in correct order using sequence numbers
 - Forwards traffic to the internet using NAT
 - Handles multiple concurrent client connections
-
-## 🏕️ Deployment Scenarios
-
-### LAN Topology Example
-In a typical setup, all devices on a local network are configured to use the `onebox-client` device as their internet gateway. This allows all traffic to be transparently routed through the bonded tunnel.
-
-```mermaid
-graph TD
-    subgraph "Local Area Network (192.168.1.0/24)"
-        direction LR
-        A[PC 1] --> R;
-        B[Laptop] --> R;
-        C[Phone] --> R;
-        OBC[onebox-client Device <br> 192.168.1.2] --> R{Router / Switch <br> 192.168.1.1};
-    end
-
-    subgraph "Internet Connections"
-        direction TB
-        R -- "Default Gateway set to 192.168.1.2" --> OBC;
-        OBC --> W1[WAN 1];
-        OBC --> W2[WAN 2];
-    end
-
-    W1 --> Internet[(Public Internet)];
-    W2 --> Internet;
-
-    style OBC fill:#f9f,stroke:#333,stroke-width:2px
-```
-
-### WAN Connection Examples
-The `onebox-client` can bond various types of internet connections simultaneously.
-
-```mermaid
-graph LR
-    subgraph "Internet Sources"
-        A[Cable/DSL Modem]
-        B[Public Wi-Fi Hotspot]
-        C[4G/LTE USB Dongle]
-    end
-
-    subgraph "onebox-client Device"
-        OBC(onebox-client)
-    end
-
-    A -- "Wired Ethernet (eth0)" --> OBC;
-    B -- "Wi-Fi Client (wlan0)" --> OBC;
-    C -- "Cellular Modem (usb0)" --> OBC;
-
-    OBC --> Tunnel((To onebox-server));
-
-    style OBC fill:#f9f,stroke:#333,stroke-width:2px
-```
-
-## 📦 Protocol
-
-All traffic is sent as UDP datagrams. The payload of each UDP packet contains a custom `onebox` header followed by an encrypted payload.
-
-### Packet Structure
-```mermaid
-graph LR
-    subgraph "UDP Datagram sent over a WAN link"
-        A[IP Header] --> B[UDP Header];
-        B --> C{onebox Packet Header};
-        C --> D[Encrypted Payload];
-    end
-
-    subgraph "onebox Packet Header (Plaintext, Authenticated)"
-        direction TB
-        H1[PacketType <br> e.g., Data, Probe, Auth];
-        H2[ClientId];
-        H3[SequenceNumber];
-    end
-
-    subgraph "Encrypted Payload (ChaCha20-Poly1305)"
-        direction TB
-        P1[Original IP Packet from TUN];
-        P2[16-byte Authentication Tag];
-    end
-
-    C -- Contains --> H1;
-    C -- Contains --> H2;
-    C -- Contains --> H3;
-
-    D -- Contains --> P1;
-    D -- Contains --> P2;
-
-    style P1 fill:#f99,stroke:#333,stroke-width:2px;
-```
-
-### Jitter Buffer
-The server uses a jitter buffer to reorder packets that may arrive out of sequence from different WAN links.
-
-```mermaid
-graph TD
-    A[Data Packet Arrives (Seq=S)] --> B{Insert (S, Packet) into <br> BTreeMap Jitter Buffer};
-    B --> C{Is this the first ever <br> packet from this client?};
-    C -- Yes --> D[Set next_expected_seq = S];
-    C -- No --> E;
-    D --> E{Loop while buffer contains <br> packet with Seq == next_expected_seq};
-
-    E -- True --> F[Remove packet from buffer];
-    F --> G[Write packet to TUN interface];
-    G --> H[Increment next_expected_seq];
-    H --> E;
-
-    E -- False --> I[Wait for more packets];
-```
-
-## ⚙️ Common Workflows
-
-### Client Authentication
-
-The client authenticates with the server using a simple handshake. This ensures that only clients with the correct Pre-Shared Key (PSK) can connect.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant C as onebox-client
-    participant S as onebox-server
-
-    Note over C: Client starts up, discovers WAN links.
-    C->>S: Sends Packet(Header{Type: AuthRequest})
-    activate S
-
-    Note over S: Server receives AuthRequest. <br> Decrypts payload to verify PSK.
-    Note over S: If successful, marks client as Authenticated.
-
-    S-->>C: Responds with Packet(Header{Type: AuthResponse})
-    deactivate S
-
-    C->>S: Begins sending data packets (PacketType::Data)
-    S-->>C: Begins sending data packets (PacketType::Data)
-
-    Note over C,S: Secure tunnel is now active.
-```
-
-### Link Failover & State Machine
-
-The client constantly monitors the health of each WAN link by sending probes. If a link becomes unresponsive, it is quickly removed from the pool of active links. The state of each link is managed as follows:
-
-```mermaid
-stateDiagram-v2
-    direction LR
-    [*] --> Unknown
-
-    Unknown --> Up: Successful Probe
-    Unknown --> Down: 4 Consecutive Probe Failures
-
-    Up --> Down: 4 Consecutive Probe Failures
-    Down --> Up: Successful Probe
-```
-
-Here is the sequence of events during a link failure:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client as onebox-client
-    participant Server as onebox-server
-
-    loop Health Probing (every 500ms)
-        Client->>Server: Sends Packet(Header{Type: Probe}) for Link 1
-        Server-->>Client: Echoes Probe Packet for Link 1
-
-        Client->>Server: Sends Packet(Header{Type: Probe}) for Link 2
-        Server-->>Client: Echoes Probe Packet for Link 2
-    end
-
-    Note over Client, Server: Suddenly, Link 2 becomes unresponsive.
-
-    Client->>Server: Sends Packet(Header{Type: Probe}) for Link 2
-    Note over Client: Probe times out (no echo from server)
-    Note over Client: consecutive_failures = 1
-
-    Client->>Server: Sends Packet(Header{Type: Probe}) for Link 2
-    Note over Client: Probe times out
-    Note over Client: consecutive_failures = 2
-
-    Client->>Server: Sends Packet(Header{Type: Probe}) for Link 2
-    Note over Client: Probe times out
-    Note over Client: consecutive_failures = 3
-
-    activate Client
-    Note over Client: Failure threshold reached for Link 2.
-    Client->>Client: Mark Link 2 as "Down"
-    Client->>Client: Remove Link 2 from active packet distribution pool.
-    deactivate Client
-
-    Note over Client, Server: Client now only sends data over Link 1.
-```
 
 ## 📋 Requirements
 
@@ -312,24 +91,6 @@ sequenceDiagram
    ```
 
 ## ⚙️ Configuration
-
-The system is configured via a `config.toml` file. The schema is as follows:
-
-```mermaid
-mindmap
-  root((config.toml))
-    log_level
-    preshared_key
-    [client]
-      server_address
-      server_port
-      tun_name
-      tun_ip
-      tun_netmask
-    [server]
-      listen_address
-      listen_port
-```
 
 ### Client Configuration (`config.toml`)
 
@@ -411,62 +172,6 @@ curl -o /dev/null http://speedtest.tele2.net/100MB.zip
 ip route show
 ```
 
-## 🧪 Testing
-
-The project includes a comprehensive integration test suite that runs in an isolated network environment created with network namespaces.
-
-### Test Environment Topology
-
-The `setup_net_env.sh` script creates a virtual network of bridges and namespaces to simulate the client, the server, and the public internet. This allows for end-to-end testing without requiring a real cloud VPS or multiple physical network connections.
-
-```mermaid
-graph TD
-    subgraph "Host Machine"
-        direction LR
-        br_wan0["Bridge: br-wan0 <br> (Gateway: 192.168.10.1)"]
-        br_wan1["Bridge: br-wan1 <br> (Gateway: 192.168.20.1)"]
-        br_public["Bridge: br-public <br> (Gateway: 10.0.0.1)"]
-    end
-
-    subgraph "client Namespace"
-        direction TB
-        subgraph "Virtual Interfaces"
-            client_wan0["veth: wan0 <br> (192.168.10.2)"]
-            client_wan1["veth: wan1 <br> (192.168.20.2)"]
-        end
-        client_app["onebox-client Process"]
-    end
-
-    subgraph "server Namespace"
-        direction TB
-        server_eth0["veth: eth0 <br> (10.0.0.3)"]
-        server_app["onebox-server Process"]
-    end
-
-    subgraph "internet_endpoint Namespace"
-        direction TB
-        inet_eth0["veth: eth0 <br> (10.0.0.88)"]
-        inet_sim["Simulated Web Server"]
-    end
-
-    client_wan0 -- "Virtual Cable" --- br_wan0
-    client_wan1 -- "Virtual Cable" --- br_wan1
-    server_eth0 -- "Virtual Cable" --- br_public
-    inet_eth0 -- "Virtual Cable" --- br_public
-
-    style client_app fill:#f9f
-    style server_app fill:#ccf
-    style inet_sim fill:#9f9
-```
-
-### Running Tests
-
-To run all tests, including the integration tests, use the following command. The `--test-threads=1` flag is required to run the integration tests sequentially, as they manipulate shared network resources.
-
-```bash
-cargo test -- --test-threads=1
-```
-
 ## 🔧 Development
 
 ### Project Structure
@@ -478,16 +183,10 @@ onebox-rs/
 ├── onebox-client/          # Client binary
 ├── onebox-server/          # Server binary
 ├── docs/                   # Documentation
-│   ├── diagrams/
-│   │   ├── 01-overview/
-│   │   ├── 02-protocol/
-│   │   ├── 03-workflows/
-│   │   ├── 04-testing/
-│   │   └── 05-configuration/
-│   ├── PRD.md
-│   ├── SRS.md
-│   ├── TEST_PLAN.md
-│   └── TASK_LIST.md
+│   ├── PRD.md             # Product Requirements Document
+│   ├── SRS.md             # Software Requirements Specification
+│   ├── TEST_PLAN.md       # Test scenarios and validation
+│   └── TASK_LIST.md       # Implementation roadmap
 └── README.md               # This file
 ```
 
@@ -497,12 +196,40 @@ onebox-rs/
 # Development build
 cargo build
 
+# Run tests
+cargo test
+
 # Format code
 cargo fmt
 
 # Lint code
 cargo clippy -- -D warnings
 ```
+
+### Running Tests
+
+```bash
+# Run all tests
+cargo test
+
+# Run specific test
+cargo test test_name
+
+# Run with output
+cargo test -- --nocapture
+```
+
+## 🧪 Testing
+
+The project includes comprehensive test scenarios covering:
+
+- **Basic Connectivity**: End-to-end ping tests
+- **Failover Scenarios**: Link failure and recovery
+- **Performance**: Throughput and latency measurements
+- **Security**: Authentication and encryption validation
+- **Stress Testing**: High-load scenarios
+
+See `docs/TEST_PLAN.md` for detailed test procedures.
 
 ## 📚 Documentation
 
@@ -542,6 +269,13 @@ This software requires root privileges to create TUN interfaces and modify routi
 - **Discussions**: Join community discussions on [GitHub Discussions](https://github.com/yourusername/onebox-rs/discussions)
 - **Wiki**: Check our [Wiki](https://github.com/yourusername/onebox-rs/wiki) for additional documentation
 
+## 🎨 Alternative Diagram Formats
+
+This `README` uses Mermaid JS for its diagrams. The source for all diagrams is also available in other formats for use with different tooling:
+
+- **[View D2 Diagrams](docs/diagrams/d2/)**
+- **[View PlantUML Diagrams](docs/diagrams/plantuml/README.md)**
+
 ## 🙏 Acknowledgments
 
 - Built with [Rust](https://rust-lang.org) and [Tokio](https://tokio.rs)
@@ -552,178 +286,93 @@ This software requires root privileges to create TUN interfaces and modify routi
 
 **Made with ❤️ in Rust**
 
-## 🎨 D2 Diagrams
+## 🐳 Docker Compose Simulation
 
-Here are the same diagrams, rendered using D2.
+You can simulate client-server communication locally using Docker Compose.
 
-### System Architecture
-```d2
-direction: right
-
-Users_LAN: {
-  pc: 'PC / Laptop'
-  onebox_client: 'onebox-client'
-}
-
-onebox_client_Device: {
-  onebox_client -> TUNNEL
-  TUNNEL -> 'WAN 1'
-  TUNNEL -> 'WAN 2'
-}
-
-Public_Internet: {
-  'WAN 1' -> 'onebox-server'
-  'WAN 2' -> 'onebox-server'
-}
-
-Cloud_VPS: {
-  'onebox-server' -> TUNNEL
-  TUNNEL -> Internet
-}
-
-Users_LAN.pc -> Users_LAN.onebox_client
-onebox_client_Device.onebox_client -> Public_Internet.'WAN 1'
-onebox_client_Device.onebox_client -> Public_Internet.'WAN 2'
-Public_Internet.'onebox-server' -> Cloud_VPS.TUNNEL
-Cloud_VPS.TUNNEL -> Cloud_VPS.Internet
-
-'onebox-client'.style.fill: "#f9f"
-'onebox-server'.style.fill: "#ccf"
+1. Build the image:
+```bash
+docker compose build
 ```
 
-### Link Failover
-```d2
-diagram: sequence
-'onebox-client' -> 'onebox-server': Probe Link 1
-'onebox-server' -> 'onebox-client': Echo
-'onebox-client' -> 'onebox-server': Probe Link 2
-'onebox-server' -> 'onebox-client': Echo
-
-'note over onebox-client, onebox-server': 'Link 2 becomes unresponsive'
-
-'onebox-client' -> 'onebox-server': Probe Link 2 {style.stroke: red}
-'note left of onebox-client': 'Timeout... failures: 1'
-'onebox-client' -> 'onebox-server': Probe Link 2 {style.stroke: red}
-'note left of onebox-client': 'Timeout... failures: 2'
-'onebox-client' -> 'onebox-server': Probe Link 2 {style.stroke: red}
-'note left of onebox-client': 'Timeout... failures: 3'
-
-'onebox-client': {
-  'Link 2 marked as DOWN': {
-    style: {
-      fill: red
-    }
-  }
-}
+2. Start the server and client on an isolated bridge network:
+```bash
+docker compose up -d
 ```
 
-### Packet Structure
-```d2
-direction: right
-
-UDP_Datagram: {
-  IP_Header -> UDP_Header
-  UDP_Header -> onebox_Packet_Header
-  onebox_Packet_Header -> Encrypted_Payload
-}
-
-onebox_Packet_Header: {
-  shape: package
-  'onebox Packet Header (Plaintext, Authenticated)': {
-    PacketType: 'e.g., Data, Probe, Auth'
-    ClientId
-    SequenceNumber
-  }
-}
-
-Encrypted_Payload: {
-  shape: package
-  'Encrypted Payload (ChaCha20-Poly1305)': {
-    'Original IP Packet from TUN'
-    '16-byte Authentication Tag'
-  }
-}
+3. Inspect logs:
+```bash
+docker compose logs -f server
+docker compose logs -f client
 ```
 
-### Jitter Buffer
-```d2
-direction: down
-
-'Data Packet Arrives (Seq=S)' -> 'Insert (S, Packet) into BTreeMap Jitter Buffer'
-'Insert (S, Packet) into BTreeMap Jitter Buffer' -> 'Is this the first ever packet from this client?'
-
-'Is this the first ever packet from this client?' -> 'Set next_expected_seq = S': Yes
-'Is this the first ever packet from this client?' -> 'Loop while buffer contains packet with Seq == next_expected_seq': No
-
-'Set next_expected_seq = S' -> 'Loop while buffer contains packet with Seq == next_expected_seq'
-
-'Loop while buffer contains packet with Seq == next_expected_seq)' -> 'Remove packet from buffer': True
-'Remove packet from buffer' -> 'Write packet to TUN interface'
-'Write packet to TUN interface' -> 'Increment next_expected_seq'
-'Increment next_expected_seq' -> 'Loop while buffer contains packet with Seq == next_expected_seq'
-
-'Loop while buffer contains packet with Seq == next_expected_seq' -> 'Wait for more packets': False
+4. Send another test datagram from the client container:
+```bash
+docker compose exec client /usr/local/bin/onebox-client --config /home/onebox/config.docker.client.toml start --foreground
 ```
 
-### Client Logic Flow
-```d2
-direction: down
+Notes:
+- The compose file uses a custom bridge network with static IPs:
+  - Server: `172.28.0.2:8080/udp`
+  - Client: `172.28.0.3`
+- Client and server load their configs from `config.docker.*.toml` mounted read-only.
+- The current client sends a single UDP datagram ("Hello Onebox") to the server. The server logs received datagrams.
 
-Start -> 'Parse CLI Arguments'
-'Parse CLI Arguments' -> 'Load config.toml'
-'Load config.toml' -> 'Discover WAN Interfaces & Bind Sockets'
-'Discover WAN Interfaces & Bind Sockets' -> 'Create Virtual TUN Device'
-'Create Virtual TUN Device' -> 'Set System Default Route to TUN Device'
-'Set System Default Route to TUN Device' -> 'Perform Handshake with Server'
-'Perform Handshake with Server' -> 'Spawn Concurrent Tasks'
+## 🔬 Manual Testing
 
-'Spawn Concurrent Tasks' -> 'Task 1: TUN to UDP'
-'Spawn Concurrent Tasks' -> 'Task 2: UDP to TUN'
-'Spawn Concurrent Tasks' -> 'Task 3: Health Probers'
-'Spawn Concurrent Tasks' -> 'Task 4: Status Socket'
+### Option A: With Docker Compose (Recommended)
+
+Prereqs: Docker and Docker Compose plugin installed.
+
+1) Build images
+```bash
+docker compose build
 ```
 
-### Server Logic Flow
-```d2
-direction: down
-
-Start -> 'Parse CLI & Load Config'
-'Parse CLI & Load Config' -> 'Create TUN Device, Setup IP Forwarding & NAT'
-'Create TUN Device, Setup IP Forwarding & NAT' -> 'Bind Public UDP Socket'
-'Bind Public UDP Socket' -> 'Spawn Main Tasks'
-
-'Spawn Main Tasks' -> 'Task 1: Dispatcher'
-'Task 1: Dispatcher' -> 'Task 2: Worker Pool'
-'Spawn Main Tasks' -> 'Task 3: TUN to UDP'
+2) Start services
+```bash
+docker compose up -d
 ```
 
-### Link State Machine
-```d2
-direction: right
+3) View logs
+```bash
+# Server logs (should show "UDP server listening on ..." and "Received ... bytes from ...")
+docker compose logs -f server
 
-Unknown -> Up: 'Successful Probe'
-Up -> Down: '4 Consecutive Probe Failures'
-Down -> Up: 'Successful Probe'
-Unknown -> Down: '4 Consecutive Probe Failures'
+# Client logs (should show it sent a datagram)
+docker compose logs -f client
 ```
 
-### Configuration Schema
-```d2
-'config.toml': {
-  log_level
-  preshared_key
-
-  client: {
-    server_address
-    server_port
-    tun_name
-    tun_ip
-    tun_netmask
-  }
-
-  server: {
-    listen_address
-    listen_port
-  }
-}
+4) Trigger an additional client send
+```bash
+docker compose exec client /usr/local/bin/onebox-client \
+  --config /home/onebox/config.docker.client.toml start --foreground
 ```
+
+5) Stop services
+```bash
+docker compose down -v
+```
+
+### Option B: Local Binaries (No Docker)
+
+Prereqs: Rust toolchain installed (rustup), Linux environment.
+
+1) Build
+```bash
+cargo build
+```
+
+2) Start server (foreground)
+```bash
+RUST_LOG=info ./target/debug/onebox-server start --foreground
+```
+
+3) In another terminal, run client once
+```bash
+RUST_LOG=info ./target/debug/onebox-client --config ./config.toml start --foreground
+```
+
+Expected:
+- Server prints that it is listening and logs a received datagram of 12 bytes from the client.
+- Client prints that it sent 12 bytes and exits.

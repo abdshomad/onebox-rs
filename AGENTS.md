@@ -69,28 +69,7 @@ The implementation is organized into 8 logical phases:
 - **Document as you go:** Add clear doc comments and update relevant documentation
 - **Maintain changelog:** Update changelog entries for all completed tasks and milestones
 
-#### **6. Documentation Standards**
-
-To ensure clarity and consistency, all documentation should adhere to the following standards:
-
-1.  **Static Diagrams (Mermaid JS):**
-    *   All static diagrams (flowcharts, sequence diagrams, etc.) must be created using [Mermaid JS](https://mermaid-js.github.io/mermaid/#/).
-    *   The source code for diagrams must be stored in `.mmd` files within the `docs/diagrams/` directory.
-    *   This directory should be organized into numbered sub-folders based on topic (e.g., `01-overview`, `02-protocol`).
-    *   Diagrams should be embedded directly into the relevant Markdown files (e.g., `README.md`) for easy viewing.
-
-2.  **Animated Diagrams (D2):**
-    *   For complex processes that benefit from animation, use the [D2 language](https://d2lang.com/).
-    *   The D2 source scripts for diagrams should be stored in the `docs/diagrams/d2/` directory.
-    *   The D2 diagrams can be embedded directly in Markdown files.
-    *   **Crucially, do not commit rendered video, SVG, or GIF files to the repository.** These will be generated manually as needed to keep the repository size small.
-
-3.  **Web-based Animations (anime.js, Motion One, Theatre.js):**
-    *   For highly interactive or web-specific animations, JavaScript libraries like [anime.js](https://animejs.com/), [Motion One](https://motion.dev/), or [Theatre.js](https://www.theatrejs.com/) can be used.
-    *   These proofs-of-concept should be self-contained in their own directories within `docs/diagrams/` (e.g., `docs/diagrams/animejs/`).
-    *   Each POC directory must include a `README.md` file explaining how to view the animation locally.
-
-#### **7. Success Criteria**
+#### **6. Success Criteria**
 
 A task is considered **Done** when:
 1. ✅ Implementation is complete according to SRS requirements
@@ -101,6 +80,14 @@ A task is considered **Done** when:
 6. ✅ Code review is completed (if applicable)
 
 **Initial State:** Awaiting `next task` to begin with **T0: Project Scaffolding** in Phase 1.
+
+#### **7. Documentation Standards**
+
+- **Primary Diagrams:** The main `README.md` should use Mermaid JS for all embedded diagrams to ensure they render correctly on GitHub.
+- **Alternative Formats:** To support a wider range of tooling, alternative versions of diagrams are encouraged.
+  - **D2:** D2 source files (`.d2`) should be stored in `docs/diagrams/d2/`.
+  - **PlantUML:** PlantUML source files (`.puml`) should be stored in `docs/diagrams/plantuml/`. A `README.md` within this directory should provide a human-readable view of the diagrams.
+- **Animation POCs:** Proofs-of-concept for animated diagrams (Manim, anime.js, etc.) should be stored in their own subdirectories within `docs/diagrams/`. Rendered output (videos, GIFs) should not be committed to the repository.
 
 ---
 ### **docs/PRD.md**

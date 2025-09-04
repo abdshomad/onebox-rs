@@ -12,24 +12,18 @@ use onebox_core::prelude::*;
 use onebox_core::types::ClientId;
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::fmt::Write;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{UdpSocket, UnixListener, UnixStream};
+use tokio::net::{UnixListener, UnixStream, UdpSocket};
 use tokio::sync::{Mutex, RwLock};
 use tokio_tun::TunBuilder;
 use tracing::{debug, error, info, warn, Level};
 
 const STATUS_SOCKET_PATH: &str = "/tmp/onebox_status.sock";
-
-type LinkSocket = (String, Arc<UdpSocket>);
-type SocketsVec = Vec<LinkSocket>;
-type AllSockets = Arc<SocketsVec>;
-type ActiveSockets = Arc<RwLock<SocketsVec>>;
 
 async fn perform_handshake(
     socket: &UdpSocket,
@@ -74,7 +68,9 @@ async fn perform_handshake(
     Err(anyhow::anyhow!("Handshake failed after multiple attempts."))
 }
 
-async fn discover_and_bind_sockets(server_addr: SocketAddr) -> anyhow::Result<SocketsVec> {
+async fn discover_and_bind_sockets(
+    server_addr: SocketAddr,
+) -> anyhow::Result<Vec<(String, Arc<UdpSocket>)>> {
     info!("Discovering WAN interfaces and binding sockets...");
     let mut sockets = Vec::new();
     let ifaces = NetworkInterface::show()?;
@@ -150,16 +146,14 @@ async fn handle_status_connection(
 ) -> anyhow::Result<()> {
     let stats = link_stats.lock().await;
     let mut response = String::new();
-    writeln!(
-        &mut response,
-        "{:<15} {:<10} {:<15} {:<10}",
+    response.push_str(&format!(
+        "{:<15} {:<10} {:<15} {:<10}\n",
         "Link", "Status", "Latency (ms)", "Loss (%)"
-    )?;
-    writeln!(
-        &mut response,
-        "{:-<15} {:-<10} {:-<15} {:-<10}",
+    ));
+    response.push_str(&format!(
+        "{:-<15} {:-<10} {:-<15} {:-<10}\n",
         "", "", "", ""
-    )?;
+    ));
 
     for (name, stats) in stats.iter() {
         let status_str = format!("{:?}", stats.status);
@@ -169,10 +163,10 @@ async fn handle_status_connection(
             "-".to_string()
         };
         let loss_str = format!("{:.2}", stats.packet_loss_percent());
-        writeln!(
-            &mut response,
-            "{name:<15} {status_str:<10} {rtt_str:<15} {loss_str:<10}"
-        )?;
+        response.push_str(&format!(
+            "{:<15} {:<10} {:<15} {:<10}\n",
+            name, status_str, rtt_str, loss_str
+        ));
     }
 
     stream.write_all(response.as_bytes()).await?;
@@ -183,8 +177,8 @@ async fn handle_probe_response(
     header: &PacketHeader,
     iface_name: &str,
     stats_mutex: Arc<Mutex<HashMap<String, LinkStats>>>,
-    all_sockets: &AllSockets,
-    active_sockets: &ActiveSockets,
+    all_sockets: &Arc<Vec<(String, Arc<UdpSocket>)>>,
+    active_sockets: &Arc<RwLock<Vec<(String, Arc<UdpSocket>)>>>,
 ) {
     let mut should_mark_up = false;
     let mut stats_guard = stats_mutex.lock().await;
@@ -208,10 +202,7 @@ async fn handle_probe_response(
         );
         if let Some(socket_to_add) = all_sockets.iter().find(|(name, _)| name == iface_name) {
             let mut active_links_guard = active_sockets.write().await;
-            if !active_links_guard
-                .iter()
-                .any(|(name, _)| name == iface_name)
-            {
+            if !active_links_guard.iter().any(|(name, _)| name == iface_name) {
                 active_links_guard.push(socket_to_add.clone());
                 info!(
                     "Link {} re-added. Active links: {}",
@@ -286,9 +277,7 @@ async fn main() -> anyhow::Result<()> {
             let tun_netmask: Ipv4Addr = config.client.tun_netmask.parse()?;
             let tun_name = &config.client.tun_name;
             info!("Ensuring old TUN device '{}' is cleaned up...", tun_name);
-            let _ = Command::new("ip")
-                .args(["link", "delete", tun_name])
-                .status(); // Ignore result, it's fine if it doesn't exist
+            let _ = Command::new("ip").args(["link", "delete", tun_name]).status(); // Ignore result, it's fine if it doesn't exist
             info!("Creating TUN device '{}'...", tun_name);
             let tun = TunBuilder::new()
                 .name(tun_name)
@@ -501,11 +490,7 @@ async fn main() -> anyhow::Result<()> {
                 tokio::spawn(async move {
                     let mut buf = [0u8; DOWNSTREAM_BUF_SIZE];
                     while let Ok(len) = socket_clone.recv(&mut buf).await {
-                        if tx_clone
-                            .send((len, buf, iface_name_clone.clone()))
-                            .await
-                            .is_err()
-                        {
+                        if tx_clone.send((len, buf, iface_name_clone.clone())).await.is_err() {
                             // Channel closed, receiver is gone.
                             break;
                         }
@@ -543,10 +528,7 @@ async fn main() -> anyhow::Result<()> {
                                 )
                                 .await
                                 {
-                                    warn!(
-                                        "Error handling data packet: {}. Stopping downstream task.",
-                                        e
-                                    );
+                                    warn!("Error handling data packet: {}. Stopping downstream task.", e);
                                     break; // Exit loop on critical error (e.g., TUN write failure)
                                 }
                             }
@@ -563,16 +545,18 @@ async fn main() -> anyhow::Result<()> {
             };
         }
         Commands::Stop => info!("Client stop not yet implemented"),
-        Commands::Status => match UnixStream::connect(STATUS_SOCKET_PATH).await {
-            Ok(mut stream) => {
-                let mut response = String::new();
-                stream.read_to_string(&mut response).await?;
-                print!("{response}");
+        Commands::Status => {
+            match UnixStream::connect(STATUS_SOCKET_PATH).await {
+                Ok(mut stream) => {
+                    let mut response = String::new();
+                    stream.read_to_string(&mut response).await?;
+                    print!("{}", response);
+                }
+                Err(_) => {
+                    eprintln!("Could not get client status. Is the client running?");
+                }
             }
-            Err(_) => {
-                eprintln!("Could not get client status. Is the client running?");
-            }
-        },
+        }
         Commands::Config => {
             println!("Configuration loaded from: {}", &cli.config);
             println!("{config:#?}");

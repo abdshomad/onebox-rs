@@ -1,4 +1,4 @@
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio, Child};
 use std::thread;
 use std::time::Duration;
 
@@ -17,12 +17,7 @@ fn run_in_client_ns(command: &str, args: &[&str]) -> std::process::Output {
         .arg(command)
         .args(args)
         .output()
-        .unwrap_or_else(|e| {
-            panic!(
-                "Failed to execute command '{}' in client namespace: {}",
-                command, e
-            )
-        })
+        .unwrap_or_else(|e| panic!("Failed to execute command '{}' in client namespace: {}", command, e))
 }
 
 /// Helper function to get the client status output.
@@ -30,15 +25,8 @@ fn get_client_status() -> String {
     // The client status command might need a moment to get the latest state from the main process.
     thread::sleep(Duration::from_secs(1));
     // We must pass the same config file that the TestEnvironment uses to start the client.
-    let output = run_in_client_ns(
-        "../target/debug/onebox-client",
-        &["--config", "../config.test.client.toml", "status"],
-    );
-    assert!(
-        output.status.success(),
-        "Failed to get client status. Stderr: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    let output = run_in_client_ns("../target/debug/onebox-client", &["--config", "../config.test.client.toml", "status"]);
+    assert!(output.status.success(), "Failed to get client status. Stderr: {}", String::from_utf8_lossy(&output.stderr));
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
@@ -88,10 +76,7 @@ fn test_hard_link_failure() {
     let status_output = get_client_status();
     println!("Client status after wan1 down:\n{}", status_output);
     let re_down = Regex::new(r"wan1\s+Down").unwrap();
-    assert!(
-        re_down.is_match(&status_output),
-        "Client status does not show wan1 as Down"
-    );
+    assert!(re_down.is_match(&status_output), "Client status does not show wan1 as Down");
 
     ping_process.kill().expect("Failed to kill ping process");
     println!("--- Hard Link Failure Test Successful ---");
@@ -109,42 +94,24 @@ fn test_high_latency_degradation() {
     println!("--- Running High Latency Degradation Test (TS2.3) ---");
 
     println!("--- Adding 300ms latency to wan1 ---");
-    let tc_output = run_in_client_ns(
-        "tc",
-        &[
-            "qdisc", "add", "dev", "wan1", "root", "netem", "delay", "300ms",
-        ],
-    );
-    assert!(
-        tc_output.status.success(),
-        "Failed to add latency with tc. Stderr: {}",
-        String::from_utf8_lossy(&tc_output.stderr)
-    );
+    let tc_output = run_in_client_ns("tc", &["qdisc", "add", "dev", "wan1", "root", "netem", "delay", "300ms"]);
+    assert!(tc_output.status.success(), "Failed to add latency with tc. Stderr: {}", String::from_utf8_lossy(&tc_output.stderr));
 
     // Wait for health checks to update the status.
     thread::sleep(Duration::from_secs(3));
 
     let ping_output = run_in_client_ns("ping", &["-c", "4", "10.0.0.88"]);
-    assert!(
-        ping_output.status.success(),
-        "Ping failed after adding latency."
-    );
+    assert!(ping_output.status.success(), "Ping failed after adding latency.");
 
     let final_status = get_client_status();
     println!("Final client status:\n{}", final_status);
 
     // Regex to find "wan1", then "Up", then a latency value > 250ms.
     let re = Regex::new(r"wan1\s+Up\s+(\d+)\.").unwrap();
-    let caps = re
-        .captures(&final_status)
-        .expect("Could not find wan1 latency in status output");
+    let caps = re.captures(&final_status).expect("Could not find wan1 latency in status output");
     let latency_ms: u32 = caps[1].parse().expect("Failed to parse latency as integer");
 
-    assert!(
-        latency_ms > 250,
-        "Reported latency for wan1 ({}) is not > 250ms as expected.",
-        latency_ms
-    );
+    assert!(latency_ms > 250, "Reported latency for wan1 ({}) is not > 250ms as expected.", latency_ms);
 
     println!("--- High Latency Degradation Test Successful ---");
 }

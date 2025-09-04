@@ -133,7 +133,6 @@ impl Drop for TestEnvironment {
         );
         if let Err(e) = Command::new("sudo")
             .arg("kill")
-            .arg("-9")
             .arg(self.client_process.id().to_string())
             .status()
         {
@@ -146,7 +145,6 @@ impl Drop for TestEnvironment {
         );
         if let Err(e) = Command::new("sudo")
             .arg("kill")
-            .arg("-9")
             .arg(self.server_process.id().to_string())
             .status()
         {

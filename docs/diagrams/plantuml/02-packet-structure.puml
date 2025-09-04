@@ -1,0 +1,35 @@
+@startuml
+!theme plain
+
+title Packet Structure
+
+rectangle "UDP Datagram sent over a WAN link" {
+  object "IP Header" as IPHeader
+  object "UDP Header" as UDPHeader
+  object "onebox Packet Header" as OneboxHeader
+  object "Encrypted Payload" as EncryptedPayload
+
+  IPHeader -> UDPHeader
+  UDPHeader -> OneboxHeader
+  OneboxHeader -> EncryptedPayload
+}
+
+rectangle "onebox Packet Header (Plaintext, Authenticated)" {
+  object "PacketType\n(e.g., Data, Probe, Auth)" as PacketType
+  object "ClientId" as ClientId
+  object "SequenceNumber" as SequenceNumber
+}
+
+rectangle "Encrypted Payload (ChaCha20-Poly1305)" {
+  object "Original IP Packet from TUN" as OriginalPacket
+  object "16-byte Authentication Tag" as AuthTag
+}
+
+OneboxHeader *-- PacketType
+OneboxHeader *-- ClientId
+OneboxHeader *-- SequenceNumber
+
+EncryptedPayload *-- OriginalPacket
+EncryptedPayload *-- AuthTag
+
+@enduml

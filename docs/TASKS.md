@@ -75,7 +75,7 @@ This document contains the complete list of tasks required to implement the oneb
 
 | ID | Task Description | Related SRS | Related Tests | Status | Priority |
 |----|------------------|--------------|---------------|---------|----------|
-| **T25** | **User Documentation**: Create comprehensive README.md with build, installation, and usage instructions. | N/A | N/A | `Done` | Low |
+| **T25** | **User Documentation**: Create comprehensive README.md with build, installation, and usage instructions. | N/A | N/A | `To Do` | Low |
 | **T26** | **Developer Documentation**: Document the codebase with clear doc comments and architecture overview. | NFR-MAINT-01 | N/A | `To Do` | Low |
 | **T27** | **Deployment Scripts**: Create deployment scripts and Docker configurations for easy setup. | N/A | N/A | `To Do` | Low |
 | **T28** | **Final Testing**: Perform a full regression test, including all stress, security, and long-duration stability tests. | All | All | `To Do` | High |
