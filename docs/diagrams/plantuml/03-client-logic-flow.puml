@@ -1,0 +1,44 @@
+@startuml
+!theme plain
+
+title Client Application Logic Flow
+
+start
+:Start onebox-client;
+:Parse CLI Arguments;
+:Load config.toml;
+:Discover WAN Interfaces & Bind Sockets;
+:Create Virtual TUN Device;
+:Set System Default Route to TUN Device;
+:Perform Handshake with Server;
+
+fork
+  partition "Data Plane (Upstream)" {
+    while (true)
+      :Read IP Packet from TUN;
+      :Encrypt Packet;
+      :Select WAN link (Round-Robin);
+      :Send Encrypted Packet over chosen WAN Socket;
+    endwhile
+  }
+fork again
+  partition "Data Plane (Downstream)" {
+    while (true)
+      :Receive Encrypted Packet from any WAN Socket;
+      :Decrypt Packet;
+      :Write IP Packet to TUN;
+    endwhile
+  }
+fork again
+  partition "Control Plane (Health Probers)" {
+    :Periodically send probe packets;
+  }
+fork again
+  partition "Control Plane (Status Socket)" {
+    :Listen for status requests;
+  }
+end fork
+
+stop
+
+@enduml

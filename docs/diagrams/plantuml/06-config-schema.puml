@@ -1,0 +1,27 @@
+@startuml
+!theme plain
+
+title Configuration Schema (config.toml)
+
+class Config {
+  + log_level: String
+  + preshared_key: String
+}
+
+class ClientConfig {
+  + server_address: String
+  + server_port: u16
+  + tun_name: String
+  + tun_ip: IpAddr
+  + tun_netmask: IpAddr
+}
+
+class ServerConfig {
+  + listen_address: String
+  + listen_port: u16
+}
+
+Config "1" *-- "1" ClientConfig : contains
+Config "1" *-- "1" ServerConfig : contains
+
+@enduml

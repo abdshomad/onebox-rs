@@ -1,0 +1,49 @@
+@startuml
+!theme plain
+
+title Server Application Logic Flow
+
+start
+:Start onebox-server;
+:Parse CLI & Load Config;
+:Create TUN Device, Setup IP Forwarding & NAT;
+:Bind Public UDP Socket;
+
+fork
+  partition "Dispatcher" {
+    while (true)
+      :Listens on Public UDP Socket;
+      :Receives all incoming packets;
+      :Forwards packet to Worker Pool via channel;
+    endwhile
+  }
+fork again
+  partition "Worker Pool" {
+    while (true)
+      :Receives packet from channel;
+      :Deserialize Header & Decrypt;
+      if (Packet Type?) then (AuthRequest)
+        :Authenticate Client;
+        :Send AuthResponse;
+      elseif (Probe)
+        :Echo Probe back to Client;
+      elseif (Data)
+        :Add to client's Jitter Buffer;
+        :Drain Jitter Buffer in order;
+        :Write reordered packet to TUN;
+      endif
+    endwhile
+  }
+fork again
+  partition "Downstream (TUN to UDP)" {
+    while (true)
+      :Read IP packet from TUN;
+      :Find corresponding client;
+      :Encrypt packet;
+      :Send to client over UDP;
+    endwhile
+  }
+end fork
+
+stop
+@enduml

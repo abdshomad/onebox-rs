@@ -81,6 +81,14 @@ A task is considered **Done** when:
 
 **Initial State:** Awaiting `next task` to begin with **T0: Project Scaffolding** in Phase 1.
 
+#### **7. Documentation Standards**
+
+- **Primary Diagrams:** The main `README.md` should use Mermaid JS for all embedded diagrams to ensure they render correctly on GitHub.
+- **Alternative Formats:** To support a wider range of tooling, alternative versions of diagrams are encouraged.
+  - **D2:** D2 source files (`.d2`) should be stored in `docs/diagrams/d2/`.
+  - **PlantUML:** PlantUML source files (`.puml`) should be stored in `docs/diagrams/plantuml/`. A `README.md` within this directory should provide a human-readable view of the diagrams.
+- **Animation POCs:** Proofs-of-concept for animated diagrams (Manim, anime.js, JointJS, X6 AntV, three.js, etc.) should be stored in their own subdirectories within `docs/diagrams/`. Rendered output (videos, GIFs) should not be committed to the repository.
+
 ---
 ### **docs/PRD.md**
 

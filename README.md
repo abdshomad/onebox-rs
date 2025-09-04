@@ -269,6 +269,13 @@ This software requires root privileges to create TUN interfaces and modify routi
 - **Discussions**: Join community discussions on [GitHub Discussions](https://github.com/yourusername/onebox-rs/discussions)
 - **Wiki**: Check our [Wiki](https://github.com/yourusername/onebox-rs/wiki) for additional documentation
 
+## 🎨 Alternative Diagram Formats
+
+This `README` uses Mermaid JS for its diagrams. The source for all diagrams is also available in other formats for use with different tooling:
+
+- **[View D2 Diagrams](docs/diagrams/d2/)**
+- **[View PlantUML Diagrams](docs/diagrams/plantuml/README.md)**
+
 ## 🙏 Acknowledgments
 
 - Built with [Rust](https://rust-lang.org) and [Tokio](https://tokio.rs)
