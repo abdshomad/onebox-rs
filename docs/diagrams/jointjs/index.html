@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JointJS Animation - onebox-rs Overview</title>
+    <!-- JointJS dependencies -->
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jointjs/3.7.8/joint.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.5.0/backbone-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jointjs/3.7.8/joint.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        #paper-container {
+            border: 1px solid #ccc;
+            width: 800px;
+            height: 600px;
+        }
+    </style>
+</head>
+<body>
+    <h1>JointJS Animation: onebox-rs System Overview</h1>
+    <p>This proof-of-concept demonstrates an animated data flow through the onebox-rs system.</p>
+    <div id="paper-container"></div>
+
+    <script>
+        // 1. Create the Graph and Paper
+        const graph = new joint.dia.Graph({}, { cellNamespace: joint.shapes });
+        const paper = new joint.dia.Paper({
+            el: document.getElementById('paper-container'),
+            model: graph,
+            width: 800,
+            height: 600,
+            gridSize: 10,
+            drawGrid: true,
+            cellViewNamespace: joint.shapes
+        });
+
+        // 2. Define the Diagram Elements (Shapes)
+        const client = new joint.shapes.standard.Rectangle({
+            position: { x: 50, y: 250 },
+            size: { width: 150, height: 80 },
+            attrs: {
+                body: { fill: '#f9f', stroke: '#333', strokeWidth: 2 },
+                label: { text: 'onebox-client', fill: '#333' }
+            }
+        });
+
+        const server = new joint.shapes.standard.Rectangle({
+            position: { x: 600, y: 250 },
+            size: { width: 150, height: 80 },
+            attrs: {
+                body: { fill: '#ccf', stroke: '#333', strokeWidth: 2 },
+                label: { text: 'onebox-server', fill: '#333' }
+            }
+        });
+
+        const wan1 = new joint.shapes.standard.Rectangle({
+            position: { x: 325, y: 100 },
+            size: { width: 150, height: 50 },
+            attrs: {
+                body: { fill: '#eee', stroke: '#333' },
+                label: { text: 'WAN 1 (Ethernet)', fill: '#333' }
+            }
+        });
+
+        const wan2 = new joint.shapes.standard.Rectangle({
+            position: { x: 325, y: 450 },
+            size: { width: 150, height: 50 },
+            attrs: {
+                body: { fill: '#eee', stroke: '#333' },
+                label: { text: 'WAN 2 (Cellular)', fill: '#333' }
+            }
+        });
+
+        // 3. Define the Links between elements
+        const link1 = new joint.shapes.standard.Link({
+            source: { id: client.id },
+            target: { id: wan1.id },
+            attrs: {
+                line: {
+                    stroke: '#333',
+                    strokeWidth: 2,
+                    targetMarker: {
+                        'type': 'path',
+                        'd': 'M 10 -5 L 0 0 L 10 5 z'
+                    }
+                }
+            }
+        });
+
+        const link2 = new joint.shapes.standard.Link({
+            source: { id: client.id },
+            target: { id: wan2.id },
+            attrs: {
+                line: {
+                    stroke: '#333',
+                    strokeWidth: 2,
+                    targetMarker: {
+                        'type': 'path',
+                        'd': 'M 10 -5 L 0 0 L 10 5 z'
+                    }
+                }
+            }
+        });
+
+        const link3 = new joint.shapes.standard.Link({
+            source: { id: wan1.id },
+            target: { id: server.id },
+            attrs: {
+                line: {
+                    stroke: '#333',
+                    strokeWidth: 2,
+                    targetMarker: {
+                        'type': 'path',
+                        'd': 'M 10 -5 L 0 0 L 10 5 z'
+                    }
+                }
+            }
+        });
+
+        const link4 = new joint.shapes.standard.Link({
+            source: { id: wan2.id },
+            target: { id: server.id },
+            attrs: {
+                line: {
+                    stroke: '#333',
+                    strokeWidth: 2,
+                    targetMarker: {
+                        'type': 'path',
+                        'd': 'M 10 -5 L 0 0 L 10 5 z'
+                    }
+                }
+            }
+        });
+
+
+        // 4. Add all elements to the graph
+        graph.addCells([client, server, wan1, wan2, link1, link2, link3, link4]);
+
+        // 5. Implement the Animation
+        function sendPacket(link, duration) {
+            const token = new joint.shapes.standard.Circle({
+                size: { width: 10, height: 10 },
+                attrs: {
+                    body: {
+                        fill: 'blue'
+                    }
+                }
+            });
+            const linkView = link.findView(paper);
+            linkView.sendToken(token.findView(paper).el, { duration });
+        }
+
+        // Animate packets flowing from client to server
+        setInterval(function() {
+            sendPacket(link1, 2000);
+            sendPacket(link3, 2000);
+        }, 2100);
+
+        setInterval(function() {
+            sendPacket(link2, 3000);
+            sendPacket(link4, 3000);
+        }, 3100);
+
+    </script>
+</body>
+</html>

@@ -87,7 +87,7 @@ A task is considered **Done** when:
 - **Alternative Formats:** To support a wider range of tooling, alternative versions of diagrams are encouraged.
   - **D2:** D2 source files (`.d2`) should be stored in `docs/diagrams/d2/`.
   - **PlantUML:** PlantUML source files (`.puml`) should be stored in `docs/diagrams/plantuml/`. A `README.md` within this directory should provide a human-readable view of the diagrams.
-- **Animation POCs:** Proofs-of-concept for animated diagrams (Manim, anime.js, etc.) should be stored in their own subdirectories within `docs/diagrams/`. Rendered output (videos, GIFs) should not be committed to the repository.
+- **Animation POCs:** Proofs-of-concept for animated diagrams (Manim, anime.js, JointJS, etc.) should be stored in their own subdirectories within `docs/diagrams/`. Rendered output (videos, GIFs) should not be committed to the repository.
 
 ---
 ### **docs/PRD.md**
