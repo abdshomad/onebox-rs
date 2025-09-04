@@ -22,8 +22,19 @@ sudo ip link del v-peer-client1 2>/dev/null || true
 sudo ip link del v-peer-server 2>/dev/null || true
 echo "Cleanup complete."
 
-# --- Tooling Assumption ---
-echo "Skipping tool installation. Assuming iperf3 and iproute2 are available."
+# --- Tool Installation ---
+if ! command -v tcpdump &> /dev/null
+then
+    echo "tcpdump could not be found, attempting to install..."
+    # In a CI/CD environment, it's good practice to update first.
+    # The timeout is to prevent the build from hanging indefinitely.
+    sudo apt-get update && sudo apt-get install -y --no-install-recommends tcpdump
+else
+    echo "tcpdump is already installed."
+fi
+
+# We will still assume iperf3 and iproute2 are present, as they were in the original script.
+echo "Assuming iperf3 and iproute2 are available."
 
 # --- Namespace Creation ---
 echo "Creating client and server network namespaces..."

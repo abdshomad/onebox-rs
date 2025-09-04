@@ -20,6 +20,7 @@ This document tracks upcoming changes and features that are planned for future r
 - **Failover Logic**: Implemented client-side logic to detect link failures via probe timeouts and remove them from the packet distribution pool. (T15)
 - **Unit Tests**: Added comprehensive unit tests for the `onebox-core` library, achieving over 98% code coverage. (T20)
 - **Integration Test Framework**: Added a framework for end-to-end integration tests using network namespaces. Implemented the first test case (TS1.1 - Ping) which is currently blocked by a network-level issue. (T21)
+- **Security Tests**: Implemented integration tests for security requirements (TS4.1, TS4.2), validating authentication rejection with an invalid PSK and verifying data confidentiality with `tcpdump`. (T23)
 
 ### Planned Features
 - **Basic Networking**: UDP server and client communication

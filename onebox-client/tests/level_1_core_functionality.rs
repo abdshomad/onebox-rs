@@ -9,7 +9,7 @@ fn test_ping_e2e() {
     // The '_env' variable's scope controls the setup and teardown.
     // When it is created here, TestEnvironment::new() is called.
     // When it goes out of scope at the end of the test, TestEnvironment::drop() is called.
-    let _env = TestEnvironment::new();
+    let _env = TestEnvironment::new(None, None);
 
     println!("--- Running E2E ping test (TS1.1) ---");
 
