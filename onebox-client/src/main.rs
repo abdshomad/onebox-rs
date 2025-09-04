@@ -276,6 +276,8 @@ async fn main() -> anyhow::Result<()> {
             let tun_ip: Ipv4Addr = config.client.tun_ip.parse()?;
             let tun_netmask: Ipv4Addr = config.client.tun_netmask.parse()?;
             let tun_name = &config.client.tun_name;
+            info!("Ensuring old TUN device '{}' is cleaned up...", tun_name);
+            let _ = Command::new("ip").args(["link", "delete", tun_name]).status(); // Ignore result, it's fine if it doesn't exist
             info!("Creating TUN device '{}'...", tun_name);
             let tun = TunBuilder::new()
                 .name(tun_name)
