@@ -69,7 +69,22 @@ The implementation is organized into 8 logical phases:
 - **Document as you go:** Add clear doc comments and update relevant documentation
 - **Maintain changelog:** Update changelog entries for all completed tasks and milestones
 
-#### **6. Success Criteria**
+#### **6. Documentation Standards**
+
+To ensure clarity and consistency, all documentation should adhere to the following standards:
+
+1.  **Static Diagrams (Mermaid JS):**
+    *   All static diagrams (flowcharts, sequence diagrams, etc.) must be created using [Mermaid JS](https://mermaid-js.github.io/mermaid/#/).
+    *   The source code for diagrams must be stored in `.mmd` files within the `docs/diagrams/` directory.
+    *   This directory should be organized into numbered sub-folders based on topic (e.g., `01-overview`, `02-protocol`).
+    *   Diagrams should be embedded directly into the relevant Markdown files (e.g., `README.md`) for easy viewing.
+
+2.  **Animated Diagrams (Manim):**
+    *   For complex processes that benefit from animation, use the [Manim Community Edition](https://github.com/ManimCommunity/manim).
+    *   The Python source scripts for animations must be stored in the `docs/manim/` directory.
+    *   **Crucially, do not commit rendered video or GIF files to the repository.** These will be generated manually as needed to keep the repository size small.
+
+#### **7. Success Criteria**
 
 A task is considered **Done** when:
 1. ✅ Implementation is complete according to SRS requirements
