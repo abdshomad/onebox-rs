@@ -1,0 +1,25 @@
+```mermaid
+graph TD
+    subgraph "User's LAN"
+        A[PC / Laptop] -- All Traffic --> B(onebox-client);
+    end
+
+    subgraph "onebox-client Device"
+        B -- Intercepts & Encapsulates --> C{TUNNEL};
+        C -- Round-Robin --> D[WAN 1 <br> (e.g., Ethernet)];
+        C -- Round-Robin --> E[WAN 2 <br> (e.g., Cellular)];
+    end
+
+    subgraph "Public Internet"
+        D -- Encrypted UDP --> F{onebox-server};
+        E -- Encrypted UDP --> F;
+    end
+
+    subgraph "Cloud VPS"
+        F -- Reassembles & Decrypts --> G[TUNNEL];
+        G -- Forwards --> H[Internet];
+    end
+
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style F fill:#ccf,stroke:#333,stroke-width:2px
+```

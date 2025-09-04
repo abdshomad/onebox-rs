@@ -1,0 +1,21 @@
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as onebox-client
+    participant S as onebox-server
+
+    Note over C: Client starts up, discovers WAN links.
+    C->>S: Sends Packet(Header{Type: AuthRequest})
+    activate S
+
+    Note over S: Server receives AuthRequest. <br> Decrypts payload to verify PSK.
+    Note over S: If successful, marks client as Authenticated.
+
+    S-->>C: Responds with Packet(Header{Type: AuthResponse})
+    deactivate S
+
+    C->>S: Begins sending data packets (PacketType::Data)
+    S-->>C: Begins sending data packets (PacketType::Data)
+
+    Note over C,S: Secure tunnel is now active.
+```

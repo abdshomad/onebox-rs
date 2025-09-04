@@ -1,0 +1,30 @@
+```mermaid
+graph LR
+    subgraph "UDP Datagram sent over a WAN link"
+        A[IP Header] --> B[UDP Header];
+        B --> C{onebox Packet Header};
+        C --> D[Encrypted Payload];
+    end
+
+    subgraph "onebox Packet Header (Plaintext, Authenticated)"
+        direction TB
+        H1[PacketType <br> e.g., Data, Probe, Auth];
+        H2[ClientId];
+        H3[SequenceNumber];
+    end
+
+    subgraph "Encrypted Payload (ChaCha20-Poly1305)"
+        direction TB
+        P1[Original IP Packet from TUN];
+        P2[16-byte Authentication Tag];
+    end
+
+    C -- Contains --> H1;
+    C -- Contains --> H2;
+    C -- Contains --> H3;
+
+    D -- Contains --> P1;
+    D -- Contains --> P2;
+
+    style P1 fill:#f99,stroke:#333,stroke-width:2px;
+```
