@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Client" name="onebox-client" processRef="Process_Client" />
+    <bpmn:participant id="Participant_Server" name="onebox-server" processRef="Process_Server" />
+    <bpmn:messageFlow id="MessageFlow_1" sourceRef="CallActivity_ClientProcess" targetRef="CallActivity_ServerProcess" />
+    <bpmn:messageFlow id="MessageFlow_2" sourceRef="CallActivity_ServerProcess" targetRef="CallActivity_ClientProcess" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Client" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Client" name="Client Starts" />
+    <bpmn:callActivity id="CallActivity_ClientProcess" name="Handle Client-Side Logic" calledElement="ClientProcess" />
+    <bpmn:endEvent id="EndEvent_Client" name="Client Stops" />
+    <bpmn:sequenceFlow id="SequenceFlow_Client_1" sourceRef="StartEvent_Client" targetRef="CallActivity_ClientProcess" />
+    <bpmn:sequenceFlow id="SequenceFlow_Client_2" sourceRef="CallActivity_ClientProcess" targetRef="EndEvent_Client" />
+  </bpmn:process>
+  <bpmn:process id="Process_Server" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Server" name="Server Starts" />
+    <bpmn:callActivity id="CallActivity_ServerProcess" name="Handle Server-Side Logic" calledElement="ServerProcess" />
+    <bpmn:endEvent id="EndEvent_Server" name="Server Stops" />
+    <bpmn:sequenceFlow id="SequenceFlow_Server_1" sourceRef="StartEvent_Server" targetRef="CallActivity_ServerProcess" />
+    <bpmn:sequenceFlow id="SequenceFlow_Server_2" sourceRef="CallActivity_ServerProcess" targetRef="EndEvent_Server" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_Client_Shape" bpmnElement="Participant_Client" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="600" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_Client_Shape" bpmnElement="StartEvent_Client">
+        <dc:Bounds x="210" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="203" y="225" width="51" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CallActivity_ClientProcess_Shape" bpmnElement="CallActivity_ClientProcess">
+        <dc:Bounds x="300" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Client_Shape" bpmnElement="EndEvent_Client">
+        <dc:Bounds x="460" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="453" y="225" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_Client_1_Edge" bpmnElement="SequenceFlow_Client_1">
+        <di:waypoint x="246" y="200" />
+        <di:waypoint x="300" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_Client_2_Edge" bpmnElement="SequenceFlow_Client_2">
+        <di:waypoint x="400" y="200" />
+        <di:waypoint x="460" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_Server_Shape" bpmnElement="Participant_Server" isHorizontal="true">
+        <dc:Bounds x="160" y="400" width="600" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_Server_Shape" bpmnElement="StartEvent_Server">
+        <dc:Bounds x="210" y="502" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="203" y="545" width="51" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CallActivity_ServerProcess_Shape" bpmnElement="CallActivity_ServerProcess">
+        <dc:Bounds x="300" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Server_Shape" bpmnElement="EndEvent_Server">
+        <dc:Bounds x="460" y="502" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="453" y="545" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_Server_1_Edge" bpmnElement="SequenceFlow_Server_1">
+        <di:waypoint x="246" y="520" />
+        <di:waypoint x="300" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_Server_2_Edge" bpmnElement="SequenceFlow_Server_2">
+        <di:waypoint x="400" y="520" />
+        <di:waypoint x="460" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_1_Edge" bpmnElement="MessageFlow_1">
+        <di:waypoint x="350" y="240" />
+        <di:waypoint x="350" y="480" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="355" y="358" width="0" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_2_Edge" bpmnElement="MessageFlow_2">
+        <di:waypoint x="350" y="480" />
+        <di:waypoint x="350" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="355" y="358" width="0" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
