@@ -1,0 +1,31 @@
+#direction: down
+#align: center
+#padding: 16
+#spacing: 40
+
+[<frame> onebox-client |
+    [<start> Client Starts] ->
+    [Discover WAN Interfaces] ->
+    [Monitor Link Health] ->
+    [Capture Outgoing Traffic] ->
+    [Encrypt & Encapsulate Packet] ->
+    [<transceiver> Distribute Packet to WAN links] ->
+    [<receiver> Receive & Decrypt Incoming Packet] ->
+    [Write Packet to TUN interface] ->
+    [<end> Client Stops]
+]
+
+[<frame> onebox-server |
+    [<start> Server Starts] ->
+    [Listen for Client Connections] ->
+    [Manage Client Sessions] ->
+    [<receiver> Receive Packets from Client] ->
+    [Decrypt & Reassemble Packet] ->
+    [Forward Packet to Internet] ->
+    [Receive Response from Internet] ->
+    [<transceiver> Encrypt & Forward Response to Client] ->
+    [<end> Server Stops]
+]
+
+[onebox-client] -> [onebox-server] : Encrypted Packets
+[onebox-server] -> [onebox-client] : Encrypted Response

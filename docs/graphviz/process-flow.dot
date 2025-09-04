@@ -1,0 +1,46 @@
+digraph onebox_rs_flow {
+    rankdir=TB;
+    node [shape=box, style=rounded];
+
+    subgraph cluster_client {
+        label = "onebox-client";
+        style=filled;
+        color=lightgrey;
+
+        c_start [label="Client Starts"];
+        c_discover [label="Discover WAN Interfaces"];
+        c_monitor [label="Monitor Link Health"];
+        c_capture [label="Capture Outgoing Traffic"];
+        c_encrypt [label="Encrypt & Encapsulate Packet"];
+        c_distribute [label="Distribute Packet to WAN links"];
+        c_receive [label="Receive & Decrypt Incoming Packet"];
+        c_write [label="Write Packet to TUN interface"];
+        c_end [label="Client Stops"];
+
+        c_start -> c_discover -> c_monitor -> c_capture -> c_encrypt -> c_distribute;
+        c_distribute -> c_receive -> c_write -> c_end;
+    }
+
+    subgraph cluster_server {
+        label = "onebox-server";
+        style=filled;
+        color=lightblue;
+
+        s_start [label="Server Starts"];
+        s_listen [label="Listen for Client Connections"];
+        s_manage [label="Manage Client Sessions"];
+        s_receive [label="Receive Packets from Client"];
+        s_decrypt [label="Decrypt & Reassemble Packet"];
+        s_forward_inet [label="Forward Packet to Internet"];
+        s_receive_inet [label="Receive Response from Internet"];
+        s_forward_client [label="Encrypt & Forward Response to Client"];
+        s_end [label="Server Stops"];
+
+        s_start -> s_listen -> s_manage -> s_receive -> s_decrypt -> s_forward_inet;
+        s_forward_inet -> s_receive_inet -> s_forward_client -> s_end;
+    }
+
+    // Communication between client and server
+    c_distribute -> s_receive [label="Encrypted Packets"];
+    s_forward_client -> c_receive [label="Encrypted Response"];
+}

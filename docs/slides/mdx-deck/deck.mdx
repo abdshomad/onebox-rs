@@ -1,0 +1,79 @@
+import { Appear } from 'mdx-deck'
+
+# onebox-rs
+### High-performance, secure internet bonding
+<p>A presentation by Jules</p>
+
+---
+
+## The Problem
+
+- Low Bandwidth
+- Poor Reliability
+- Lack of Redundancy
+- High Cost of dedicated lines
+
+---
+
+## The Solution: onebox-rs
+
+A Rust-based internet bonding solution that aggregates multiple internet connections into a single, resilient virtual connection.
+
+---
+
+## Features
+
+<Appear>
+  <p>Internet Bonding: Combine multiple WAN connections for increased bandwidth.</p>
+  <p>Seamless Failover: Automatic failover when connections drop, with zero packet loss.</p>
+  <p>End-to-End Encryption: ChaCha20-Poly1305 encryption for all tunnel traffic.</p>
+  <p>High Performance: Built with Rust and Tokio for minimal CPU overhead.</p>
+</Appear>
+
+---
+
+## Architecture
+
+---
+
+### Client (`onebox-client`)
+- Runs on Linux-based single-board computers (e.g., Raspberry Pi)
+- Creates a TUN interface to capture all outgoing traffic
+- Distributes packets across multiple connections
+
+---
+
+### Server (`onebox-server`)
+- Runs on a cloud VPS with a public IP
+- Receives encrypted packets from clients
+- Reassembles packets and forwards them to the internet
+
+---
+
+<img src="https://i.imgur.com/9y7B42s.png" width="100%" />
+
+---
+
+## Technical Details
+
+- Language: Rust
+- Async Runtime: Tokio
+- Protocol: Custom UDP-based protocol
+- Encryption: ChaCha20-Poly1305
+- Configuration: TOML
+
+---
+
+## Future Work
+
+<Appear>
+  <p>Web Dashboard: A simple web interface for real-time monitoring and configuration.</p>
+  <p>Advanced Bonding Modes: Implement different policies, such as "reliability first" or "cost-aware".</p>
+  <p>WireGuard Integration: Explore using WireGuard as the underlying transport.</p>
+  <p>Cross-Platform Client: Expand client support to other operating systems like macOS and Windows.</p>
+</Appear>
+
+---
+
+# The End
+<p>Created with MDX Deck</p>
