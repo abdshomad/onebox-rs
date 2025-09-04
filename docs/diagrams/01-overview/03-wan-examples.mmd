@@ -1,0 +1,20 @@
+```mermaid
+graph LR
+    subgraph "Internet Sources"
+        A[Cable/DSL Modem]
+        B[Public Wi-Fi Hotspot]
+        C[4G/LTE USB Dongle]
+    end
+
+    subgraph "onebox-client Device"
+        OBC(onebox-client)
+    end
+
+    A -- "Wired Ethernet (eth0)" --> OBC;
+    B -- "Wi-Fi Client (wlan0)" --> OBC;
+    C -- "Cellular Modem (usb0)" --> OBC;
+
+    OBC --> Tunnel((To onebox-server));
+
+    style OBC fill:#f9f,stroke:#333,stroke-width:2px
+```

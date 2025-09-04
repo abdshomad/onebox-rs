@@ -66,6 +66,58 @@ graph TD
 - Forwards traffic to the internet using NAT
 - Handles multiple concurrent client connections
 
+## 🏕️ Deployment Scenarios
+
+### LAN Topology Example
+In a typical setup, all devices on a local network are configured to use the `onebox-client` device as their internet gateway. This allows all traffic to be transparently routed through the bonded tunnel.
+
+```mermaid
+graph TD
+    subgraph "Local Area Network (192.168.1.0/24)"
+        direction LR
+        A[PC 1] --> R;
+        B[Laptop] --> R;
+        C[Phone] --> R;
+        OBC[onebox-client Device <br> 192.168.1.2] --> R{Router / Switch <br> 192.168.1.1};
+    end
+
+    subgraph "Internet Connections"
+        direction TB
+        R -- "Default Gateway set to 192.168.1.2" --> OBC;
+        OBC --> W1[WAN 1];
+        OBC --> W2[WAN 2];
+    end
+
+    W1 --> Internet[(Public Internet)];
+    W2 --> Internet;
+
+    style OBC fill:#f9f,stroke:#333,stroke-width:2px
+```
+
+### WAN Connection Examples
+The `onebox-client` can bond various types of internet connections simultaneously.
+
+```mermaid
+graph LR
+    subgraph "Internet Sources"
+        A[Cable/DSL Modem]
+        B[Public Wi-Fi Hotspot]
+        C[4G/LTE USB Dongle]
+    end
+
+    subgraph "onebox-client Device"
+        OBC(onebox-client)
+    end
+
+    A -- "Wired Ethernet (eth0)" --> OBC;
+    B -- "Wi-Fi Client (wlan0)" --> OBC;
+    C -- "Cellular Modem (usb0)" --> OBC;
+
+    OBC --> Tunnel((To onebox-server));
+
+    style OBC fill:#f9f,stroke:#333,stroke-width:2px
+```
+
 ## 📦 Protocol
 
 All traffic is sent as UDP datagrams. The payload of each UDP packet contains a custom `onebox` header followed by an encrypted payload.
