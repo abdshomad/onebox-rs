@@ -85,8 +85,8 @@ To ensure clarity and consistency, all documentation should adhere to the follow
     *   The D2 diagrams can be embedded directly in Markdown files.
     *   **Crucially, do not commit rendered video, SVG, or GIF files to the repository.** These will be generated manually as needed to keep the repository size small.
 
-3.  **Web-based Animations (anime.js, Motion One):**
-    *   For highly interactive or web-specific animations, JavaScript libraries like [anime.js](https://animejs.com/) or [Motion One](https://motion.dev/) can be used.
+3.  **Web-based Animations (anime.js, Motion One, Theatre.js):**
+    *   For highly interactive or web-specific animations, JavaScript libraries like [anime.js](https://animejs.com/), [Motion One](https://motion.dev/), or [Theatre.js](https://www.theatrejs.com/) can be used.
     *   These proofs-of-concept should be self-contained in their own directories within `docs/diagrams/` (e.g., `docs/diagrams/animejs/`).
     *   Each POC directory must include a `README.md` file explaining how to view the animation locally.
 
