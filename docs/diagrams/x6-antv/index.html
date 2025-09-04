@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>X6 AntV Animation - onebox-rs Overview</title>
+    <script src="https://unpkg.com/@antv/x6/dist/x6.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        #container {
+            border: 1px solid #ccc;
+            width: 800px;
+            height: 600px;
+        }
+    </style>
+</head>
+<body>
+    <h1>X6 AntV Animation: onebox-rs System Overview</h1>
+    <p>This proof-of-concept demonstrates an animated data flow through the onebox-rs system using the X6 AntV library.</p>
+    <div id="container"></div>
+
+    <script>
+        const { Graph } = X6;
+
+        // 1. Create the Graph
+        const graph = new Graph({
+            container: document.getElementById('container'),
+            grid: true,
+            panning: true,
+            mousewheel: true,
+        });
+
+        // 2. Define and add Nodes
+        const client = graph.addNode({
+            x: 50,
+            y: 250,
+            width: 150,
+            height: 80,
+            label: 'onebox-client',
+            attrs: {
+                body: {
+                    fill: '#f9f',
+                    stroke: '#333',
+                    strokeWidth: 2,
+                },
+            },
+        });
+
+        const server = graph.addNode({
+            x: 600,
+            y: 250,
+            width: 150,
+            height: 80,
+            label: 'onebox-server',
+            attrs: {
+                body: {
+                    fill: '#ccf',
+                    stroke: '#333',
+                    strokeWidth: 2,
+                },
+            },
+        });
+
+        const wan1 = graph.addNode({
+            x: 325,
+            y: 100,
+            width: 150,
+            height: 50,
+            label: 'WAN 1 (Ethernet)',
+        });
+
+        const wan2 = graph.addNode({
+            x: 325,
+            y: 450,
+            width: 150,
+            height: 50,
+            label: 'WAN 2 (Cellular)',
+        });
+
+        // 3. Define and add Edges
+        const edge1 = graph.addEdge({
+            source: client,
+            target: wan1,
+        });
+
+        const edge2 = graph.addEdge({
+            source: client,
+            target: wan2,
+        });
+
+        const edge3 = graph.addEdge({
+            source: wan1,
+            target: server,
+        });
+
+        const edge4 = graph.addEdge({
+            source: wan2,
+            target: server,
+        });
+
+        // 4. Implement the Animation
+        // Since sendToken is deprecated, we will simulate a flowing effect
+        // by highlighting and unhighlighting the edges.
+        function animateEdge(edge) {
+            const view = graph.findViewByCell(edge);
+            if (view) {
+                view.highlight();
+                setTimeout(() => view.unhighlight(), 500);
+            }
+        }
+
+        function animateEdgeWithTool(edge) {
+             graph.removeTool(edge, 'edge-editor');
+             graph.addTool({
+                name: 'edge-editor',
+                args: {
+                  attrs: {
+                    backgroundColor: 'blue',
+                  },
+                },
+              },)
+        }
+
+        // Animate packets flowing from client to server
+        setInterval(() => {
+            animateEdge(edge1);
+            setTimeout(() => animateEdge(edge3), 500);
+        }, 2000);
+
+        setInterval(() => {
+            animateEdge(edge2);
+            setTimeout(() => animateEdge(edge4), 500);
+        }, 3000);
+
+    </script>
+</body>
+</html>
