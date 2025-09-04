@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <title>onebox-rs | impress.js</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'PT Sans', sans-serif;
+            min-height: 740px;
+            background: rgb(215, 215, 215);
+        }
+        .step {
+            position: relative;
+            width: 900px;
+            padding: 40px;
+            margin: 20px auto;
+            box-sizing: border-box;
+            font-size: 24px;
+            line-height: 1.5;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .1);
+        }
+        .step h1 { font-size: 50px; }
+        .step h2 { font-size: 40px; }
+        .step h3 { font-size: 30px; }
+    </style>
+</head>
+<body class="impress-not-supported">
+
+<div id="impress">
+
+    <div class="step" data-x="0" data-y="0">
+        <h1>onebox-rs</h1>
+        <h3>High-performance, secure internet bonding</h3>
+        <p>A presentation by Jules</p>
+    </div>
+
+    <div class="step" data-x="1000" data-y="0">
+        <h2>The Problem</h2>
+        <ul>
+            <li>Low Bandwidth</li>
+            <li>Poor Reliability</li>
+            <li>Lack of Redundancy</li>
+            <li>High Cost of dedicated lines</li>
+        </ul>
+    </div>
+
+    <div class="step" data-x="2000" data-y="0">
+        <h2>The Solution: onebox-rs</h2>
+        <p>A Rust-based internet bonding solution that aggregates multiple internet connections into a single, resilient virtual connection.</p>
+    </div>
+
+    <div class="step" data-x="3000" data-y="0">
+        <h2>Features</h2>
+    </div>
+    <div class="step" data-x="3000" data-y="1000">
+        <h3>Internet Bonding</h3>
+        <p>Combine multiple WAN connections (Wi-Fi, Ethernet, Cellular) for increased bandwidth.</p>
+    </div>
+    <div class="step" data-x="3000" data-y="2000">
+        <h3>Seamless Failover</h3>
+        <p>Automatic failover when connections drop, with zero packet loss.</p>
+    </div>
+    <div class="step" data-x="3000" data-y="3000">
+        <h3>End-to-End Encryption</h3>
+        <p>ChaCha20-Poly1305 encryption for all tunnel traffic.</p>
+    </div>
+    <div class="step" data-x="3000" data-y="4000">
+        <h3>High Performance</h3>
+        <p>Built with Rust and Tokio for minimal CPU overhead.</p>
+    </div>
+
+    <div class="step" data-x="4000" data-y="0">
+        <h2>Architecture</h2>
+    </div>
+    <div class="step" data-x="4000" data-y="1000">
+        <h3>Client (`onebox-client`)</h3>
+        <ul>
+            <li>Runs on Linux-based single-board computers (e.g., Raspberry Pi)</li>
+            <li>Creates a TUN interface to capture all outgoing traffic</li>
+            <li>Distributes packets across multiple connections</li>
+        </ul>
+    </div>
+    <div class="step" data-x="4000" data-y="2000">
+        <h3>Server (`onebox-server`)</h3>
+        <ul>
+            <li>Runs on a cloud VPS with a public IP</li>
+            <li>Receives encrypted packets from clients</li>
+            <li>Reassembles packets and forwards them to the internet</li>
+        </ul>
+    </div>
+    <div class="step" data-x="4000" data-y="3000">
+        <img src="https://i.imgur.com/9y7B42s.png" alt="Architecture Diagram" style="width: 100%;">
+    </div>
+
+    <div class="step" data-x="5000" data-y="0">
+        <h2>Technical Details</h2>
+        <ul>
+            <li>Language: Rust</li>
+            <li>Async Runtime: Tokio</li>
+            <li>Protocol: Custom UDP-based protocol</li>
+            <li>Encryption: ChaCha20-Poly1305</li>
+            <li>Configuration: TOML</li>
+        </ul>
+    </div>
+
+    <div class="step" data-x="6000" data-y="0">
+        <h2>Future Work</h2>
+    </div>
+    <div class="step" data-x="6000" data-y="1000">
+        <h3>Web Dashboard</h3>
+        <p>A simple web interface (served locally by the client) for real-time monitoring and configuration.</p>
+    </div>
+    <div class="step" data-x="6000" data-y="2000">
+        <h3>Advanced Bonding Modes</h3>
+        <p>Implement different policies, such as "reliability first" or "cost-aware".</p>
+    </div>
+    <div class="step" data-x="6000" data-y="3000">
+        <h3>WireGuard Integration</h3>
+        <p>Explore using WireGuard as the underlying transport.</p>
+    </div>
+    <div class="step" data-x="6000" data-y="4000">
+        <h3>Cross-Platform Client</h3>
+        <p>Expand client support to other operating systems like macOS and Windows.</p>
+    </div>
+
+    <div class="step" data-x="7000" data-y="0">
+        <h1>The End</h1>
+        <p>Created with Impress.js</p>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/impress/impress.js@2.0.0/js/impress.js"></script>
+<script>impress().init();</script>
+
+</body>
+</html>
