@@ -1,0 +1,39 @@
+```mermaid
+graph TD
+    A[Start onebox-client] --> B{Parse CLI Arguments};
+    B --> C{Load config.toml};
+    C --> D[Discover WAN Interfaces <br> & Bind Sockets];
+    D --> E[Create Virtual TUN Device];
+    E --> F[Set System Default Route <br> to TUN Device];
+    F --> G[Perform Handshake with Server];
+
+    G --> H((Spawn Concurrent Tasks));
+
+    subgraph "Main Application Loop"
+        direction LR
+        H -- "Data Plane (Upstream)" --> I(Task 1: TUN to UDP);
+        H -- "Data Plane (Downstream)" --> J(Task 2: UDP to TUN);
+        H -- "Control Plane" --> K(Task 3: Health Probers);
+        H -- "Control Plane" --> L(Task 4: Status Socket);
+    end
+
+    subgraph "Task 1: Upstream"
+        direction TB
+        I_1[Read IP Packet from TUN] --> I_2[Encrypt Packet];
+        I_2 --> I_3[Select WAN link (Round-Robin)];
+        I_3 --> I_4[Send Encrypted Packet <br> over chosen WAN Socket];
+        I_4 --> I_1;
+    end
+
+    subgraph "Task 2: Downstream"
+        direction TB
+        J_1[Receive Encrypted Packet <br> from any WAN Socket] --> J_2[Decrypt Packet];
+        J_2 --> J_3[Write IP Packet to TUN];
+        J_3 --> J_1;
+    end
+
+    I --> I_1;
+    J --> J_1;
+
+    style H fill:#8f8,stroke:#333,stroke-width:2px
+```
