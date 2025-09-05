@@ -6,7 +6,12 @@
     <title>Docs Viewer</title>
     <script src="https://cjrtnc.leaningtech.com/4.2/loader.js"></script>
     <script src="https://plantuml.github.io/plantuml-core/plantuml-core.jar.js"></script>
-    <script src="https://unpkg.com/bpmn-js/dist/bpmn-viewer.development.js"></script>
+    <script src="https://unpkg.com/bpmn-js@18.6.3/dist/bpmn-viewer.development.js"></script>
+    <script src="https://unpkg.com/graphre@0.1.3/dist/graphre.js"></script>
+    <script src="https://unpkg.com/nomnoml@1.7.0/dist/nomnoml.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-graphviz@5.1.0/build/d3-graphviz.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -47,6 +52,11 @@
         }
         .file:hover {
             text-decoration: underline;
+        }
+        .file-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
     </style>
 </head>
@@ -110,9 +120,7 @@
                         if (item.name.endsWith('.html') && item.name !== 'viewer.html') {
                             contentContainer.innerHTML = '';
                             const iframe = document.createElement('iframe');
-                            iframe.style.width = '100%';
-                            iframe.style.height = '100%';
-                            iframe.style.border = 'none';
+                            iframe.className = 'file-iframe';
                             iframe.src = currentPath;
                             contentContainer.appendChild(iframe);
                         } else if (item.name.endsWith('.bpmn')) {
@@ -128,6 +136,17 @@
                                 console.error('Error rendering BPMN:', err);
                                 contentContainer.innerHTML = '<h2>Error rendering BPMN diagram</h2><p>Check the console for details.</p>';
                             }
+                        } else if (item.name.endsWith('.noml')) {
+                            contentContainer.innerHTML = '';
+                            const canvas = document.createElement('canvas');
+                            canvas.style.border = '1px solid #ccc'; // for debugging and visibility
+                            contentContainer.appendChild(canvas);
+                            try {
+                                nomnoml.draw(canvas, content);
+                            } catch (error) {
+                                console.error('Error rendering nomnoml:', error);
+                                contentContainer.innerHTML = '<h2>Error rendering noml diagram</h2><p>Check the console for details.</p>';
+                            }
                         } else if (item.name.endsWith('.puml')) {
                             contentContainer.innerHTML = '<h2>Generating PlantUML diagram...</h2>';
                             try {
@@ -137,7 +156,18 @@
                                 console.error('Error rendering PlantUML:', error);
                                 contentContainer.innerHTML = '<h2>Error rendering PlantUML diagram</h2><p>Check the console for details.</p>';
                             }
-                        } else if (item.name.endsWith('.md')) {
+                        } else if (item.name.endsWith('.dot')) {
+                            contentContainer.innerHTML = '';
+                            const graphvizContainer = document.createElement('div');
+                            graphvizContainer.id = 'graphviz-container';
+                            contentContainer.appendChild(graphvizContainer);
+                            try {
+                                d3.select('#graphviz-container').graphviz().renderDot(content);
+                            } catch (error) {
+                                console.error('Error rendering dot:', error);
+                                contentContainer.innerHTML = '<h2>Error rendering dot diagram</h2><p>Check the console for details.</p>';
+                            }
+                        } else if (item.name.endsWith('.md') || item.name.endsWith('.mdx')) {
                             contentContainer.innerHTML = marked.parse(content);
                         } else {
                             const pre = document.createElement('pre');

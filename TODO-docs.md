@@ -97,7 +97,7 @@
 
 ---
 
-## Phase 5: HTML iframe Viewer (In Progress)
+## Phase 5: HTML iframe Viewer (Completed)
 
 ### Plan
 
@@ -106,10 +106,72 @@
 
 ### Status
 
--   [ ] Implement iframe viewer
--   [ ] Style the iframe
+-   [x] Implement iframe viewer
+-   [x] Style the iframe
 
 ### Time
 
 -   **Start Time:** 2025-09-04 17:32:34 UTC
--   **Elapsed Time:** TBD
+-   **End Time:** 2025-09-04 18:01:00 UTC
+-   **Elapsed Time:** ~28 minutes 26 seconds
+
+---
+
+## Phase 6: noml Viewer (Completed)
+
+### Plan
+1.  **Research and select a JavaScript library for rendering nomnoml diagrams.**
+2.  **Integrate the library:** Add the chosen library to `docs/viewer.html`.
+3.  **Implement the viewer:** Update the script to detect `.noml` files and use the library to render their content.
+
+### Status
+-   [x] Research nomnoml rendering libraries
+-   [x] Integrate the library
+-   [x] Implement the viewer
+
+### Time
+-   **Start Time:** 2025-09-04 20:22:32 UTC
+-   **End Time:** 2025-09-04 20:23:14 UTC
+-   **Elapsed Time:** ~ 42 seconds
+
+---
+
+## Phase 7: Graphviz Viewer (Completed)
+
+### Plan
+1.  **Research and select a JavaScript library for rendering Graphviz diagrams.**
+2.  **Integrate the library:** Add the chosen library to `docs/viewer.html`.
+3.  **Implement the viewer:** Update the script to detect `.dot` files and use the library to render their content.
+
+### Status
+-   [x] Research Graphviz rendering libraries
+-   [x] Integrate the library
+-   [x] Implement the viewer
+
+### Time
+-   **Start Time:** 2025-09-04 20:23:17 UTC
+-   **End Time:** 2025-09-04 20:24:21 UTC
+-   **Elapsed Time:** ~ 1 minute 4 seconds
+
+---
+
+## Phase 8: MDX Viewer (Completed)
+
+### Plan
+1.  **Research how to render MDX content in the browser.**
+2.  **Implement `.mdx` rendering as plain Markdown due to lack of a suitable client-side library.**
+
+### Status
+-   [x] Research MDX rendering
+-   [x] Implement `.mdx` as Markdown
+
+### Time
+-   **Start Time:** 2025-09-04 20:24:23 UTC
+-   **End Time:** 2025-09-04 20:24:57 UTC
+-   **Elapsed Time:** ~ 34 seconds
+
+---
+
+## Unsupported File Types
+
+-   **blockdiag (`.diag`):** Skipped due to lack of a suitable client-side rendering library. This decision was made after research showed that `blockdiag` is a Python-based tool with no available client-side rendering options.
