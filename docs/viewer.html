@@ -7,58 +7,78 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f4f4f4;
             margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #f4f4f4;
             padding: 20px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
         }
-        h1 {
-            text-align: center;
-            color: #444;
+        .sidebar h1 {
+            font-size: 1.5em;
+            margin-top: 0;
         }
-        #file-tree-container {
-            max-width: 800px;
-            margin: 0 auto;
+        .content {
+            flex-grow: 1;
             padding: 20px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
         }
-        ul {
+        #menu-container ul {
             list-style-type: none;
-            padding-left: 20px;
+            padding-left: 15px;
         }
-        li {
-            padding: 4px 0;
+        #menu-container li {
+            padding: 5px 0;
         }
         .folder {
             cursor: pointer;
             font-weight: bold;
         }
-        .folder:hover {
+        .file {
+            cursor: pointer;
             color: #007bff;
         }
-        .file a {
-            text-decoration: none;
-            color: #007bff;
-        }
-        .file a:hover {
+        .file:hover {
             text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <h1>Documentation Viewer</h1>
-    <div id="file-tree-container"></div>
+    <div class="sidebar">
+        <h1>Docs Menu</h1>
+        <div id="menu-container"></div>
+    </div>
+    <div class="content" id="content-container">
+        <h2>Welcome</h2>
+        <p>Select a file from the menu to view its content.</p>
+    </div>
 
     <script src="file_list.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.min.js"></script>
     <script>
-        function createTreeView(fileTree, path = '') {
+        const menuContainer = document.getElementById('menu-container');
+        const contentContainer = document.getElementById('content-container');
+
+        async function loadFileContent(path) {
+            try {
+                const response = await fetch(path);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const content = await response.text();
+                return content;
+            } catch (error) {
+                console.error('Error loading file:', error);
+                return 'Error loading file content.';
+            }
+        }
+
+        function createMenu(fileTree, path = '') {
             const ul = document.createElement('ul');
-            ul.style.listStyleType = 'none';
-            ul.style.paddingLeft = '20px';
 
             for (const item of fileTree.children) {
                 const li = document.createElement('li');
@@ -67,7 +87,7 @@
                 if (item.type === 'folder') {
                     li.className = 'folder';
                     li.textContent = '📁 ' + item.name;
-                    const childrenUl = createTreeView(item, currentPath);
+                    const childrenUl = createMenu(item, currentPath);
                     childrenUl.style.display = 'none';
                     li.appendChild(childrenUl);
                     li.addEventListener('click', (event) => {
@@ -76,21 +96,29 @@
                     });
                 } else {
                     li.className = 'file';
-                    const link = document.createElement('a');
-                    link.href = currentPath;
-                    link.textContent = '📄 ' + item.name;
-                    link.target = '_blank'; // Open in new tab
-                    li.appendChild(link);
+                    li.textContent = '📄 ' + item.name;
+                    li.dataset.path = currentPath;
+                    li.addEventListener('click', async (event) => {
+                        event.stopPropagation();
+                        contentContainer.innerHTML = `<h2>Loading ${item.name}...</h2>`;
+                        const content = await loadFileContent(currentPath);
+                        if (item.name.endsWith('.md')) {
+                            contentContainer.innerHTML = marked.parse(content);
+                        } else {
+                            const pre = document.createElement('pre');
+                            pre.textContent = content;
+                            contentContainer.innerHTML = '';
+                            contentContainer.appendChild(pre);
+                        }
+                    });
                 }
                 ul.appendChild(li);
             }
             return ul;
         }
 
-        const fileTreeContainer = document.getElementById('file-tree-container');
-        // Adjust the initial path to be relative to the `docs` directory
-        const treeView = createTreeView(fileTree, '.');
-        fileTreeContainer.appendChild(treeView);
+        const menu = createMenu(fileTree, '.');
+        menuContainer.appendChild(menu);
     </script>
 </body>
 </html>
