@@ -85,6 +85,82 @@ const fileTree = {
                     ]
                 },
                 {
+                    "name": "mermaid-js",
+                    "type": "folder",
+                    "children": [
+                        {
+                            "name": "01-flowcharts",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-client-logic-flow.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "02-server-logic-flow.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "02-sequence-diagrams",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-authentication-handshake.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "02-data-transfer-upstream.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "03-data-transfer-downstream.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "04-link-health-probe.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "03-state-diagrams",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-link-health-state-machine.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "04-class-diagrams",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-config-schema.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "05-user-journey",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-cli-usage-journey.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "README-mermaidjs.md",
+                            "type": "file"
+                        }
+                    ]
+                },
+                {
                     "name": "nomnoml",
                     "type": "folder",
                     "children": [

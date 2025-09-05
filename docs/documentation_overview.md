@@ -22,6 +22,7 @@ The project's architecture and logic are documented using a variety of diagrammi
     *   **`blockdiag/`**, **`nomnoml/`**, and **`graphviz/`**: These directories contain textual representations of the process flow using their respective diagram-as-code syntaxes. They are concise, easy to version control, and provide a clear, high-level overview of the system's logic.
     *   **`plantuml/`**: This is the most comprehensive set of diagrams, covering system architecture, packet structure, application logic flows, state machines, and configuration schemas. The PlantUML diagrams are an outstanding example of thorough technical documentation.
     *   **`jointjs/`**, **`threejs/`**, and **`x6-antv/`**: These directories contain animated, interactive diagrams of the system overview. The JointJS and X6 AntV diagrams are 2D, while the three.js diagram is a 3D visualization. These are highly creative and effective for demonstrating the system's dynamic behavior.
+    *   **`mermaid-js/`**: Contains a comprehensive set of diagrams created using the Mermaid.js syntax. This includes flowcharts, sequence diagrams, state diagrams, class diagrams, and a user journey diagram, providing multiple perspectives on the system's logic and user interaction.
 
 ## 3. Presentation Decks
 
