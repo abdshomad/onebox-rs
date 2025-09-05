@@ -1,24 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>three.js Animation - onebox-rs Overview</title>
+    <title>three.js Diagrams - onebox-rs</title>
     <style>
         body { margin: 0; }
         canvas { display: block; }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+        }
     </style>
 </head>
 <body>
+    <div id="controls">
+        <label for="diagram-select">Choose a diagram:</label>
+        <select id="diagram-select"></select>
+    </div>
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
             }
         }
     </script>
     <script type="module">
         import * as THREE from 'three';
 
-        // 1. Scene, Camera, and Renderer
+        // 1. Core Setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111111);
 
@@ -34,97 +49,71 @@
         scene.add(ambientLight);
 
         const pointLight = new THREE.PointLight(0xffffff, 1);
-        pointLight.position.set(5, 5, 5);
+        pointLight.position.set(10, 10, 10);
         scene.add(pointLight);
 
-        // 3. Create Nodes (3D Objects)
-        const nodeMaterialClient = new THREE.MeshPhongMaterial({ color: 0xf900f9 });
-        const nodeMaterialServer = new THREE.MeshPhongMaterial({ color: 0xccccff });
-        const nodeMaterialWAN = new THREE.MeshPhongMaterial({ color: 0xeeeeee });
+        // 3. Diagram Loading Logic
+        const diagrams = [
+            { name: "System Overview", url: "./js/01-system-overview.js" },
+            { name: "Packet Structure", url: "./js/02-packet-structure.js" },
+            { name: "State Machine", url: "./js/03-state-machine.js" },
+        ];
 
-        const clientGeo = new THREE.BoxGeometry(2, 1, 1);
-        const client = new THREE.Mesh(clientGeo, nodeMaterialClient);
-        client.position.x = -6;
-        scene.add(client);
+        let currentDiagram = {
+            animate: () => {},
+            cleanup: () => {}
+        };
 
-        const serverGeo = new THREE.BoxGeometry(2, 1, 1);
-        const server = new THREE.Mesh(serverGeo, nodeMaterialServer);
-        server.position.x = 6;
-        scene.add(server);
+        async function loadDiagram(url) {
+            // Cleanup previous diagram
+            currentDiagram.cleanup();
 
-        const wan1 = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 1), nodeMaterialWAN);
-        wan1.position.y = 3;
-        scene.add(wan1);
+            // Clear the scene
+            while(scene.children.length > 0){
+                const child = scene.children[0];
+                scene.remove(child);
+                // Basic cleanup for geometries and materials
+                if(child.geometry) child.geometry.dispose();
+                if(child.material) child.material.dispose();
+            }
+            // Re-add lights
+            scene.add(ambientLight);
+            scene.add(pointLight);
 
-        const wan2 = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 1), nodeMaterialWAN);
-        wan2.position.y = -3;
-        scene.add(wan2);
-
-        // 4. Create Edges (Lines)
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xaaaaaa });
-
-        function createLine(startVec, endVec) {
-            const points = [startVec, endVec];
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            return new THREE.Line(geometry, lineMaterial);
+            // Dynamically import the new diagram module
+            try {
+                const module = await import(url);
+                const diagramName = Object.keys(module)[0];
+                currentDiagram = module[diagramName](scene);
+            } catch (e) {
+                console.error("Failed to load diagram:", e);
+                currentDiagram = { animate: () => {}, cleanup: () => {} };
+            }
         }
 
-        scene.add(createLine(client.position, wan1.position));
-        scene.add(createLine(client.position, wan2.position));
-        scene.add(createLine(wan1.position, server.position));
-        scene.add(createLine(wan2.position, server.position));
+        // 4. UI and Main Loop
+        const select = document.getElementById('diagram-select');
+        diagrams.forEach(d => {
+            const option = document.createElement('option');
+            option.value = d.url;
+            option.textContent = d.name;
+            select.appendChild(option);
+        });
 
-        // 5. Animation
-        const packetMaterial = new THREE.MeshBasicMaterial({ color: 0x00aaff });
-        const packetGeo = new THREE.SphereGeometry(0.15, 8, 8);
-
-        const packets = [];
-
-        function createPacket(startPos, endPos) {
-            const packet = new THREE.Mesh(packetGeo, packetMaterial);
-            packet.position.copy(startPos);
-            packets.push({ mesh: packet, start: startPos, end: endPos, progress: 0 });
-            scene.add(packet);
-        }
-
-        setInterval(() => {
-            createPacket(client.position, wan1.position);
-            createPacket(client.position, wan2.position);
-        }, 1000);
+        select.addEventListener('change', (event) => {
+            loadDiagram(event.target.value);
+        });
 
         const clock = new THREE.Clock();
-
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
-
-            // Animate packets
-            for (let i = packets.length - 1; i >= 0; i--) {
-                const p = packets[i];
-                p.progress += delta * 0.5; // speed
-
-                if (p.progress >= 1) {
-                    // If packet reaches a WAN, send it to the server
-                    if (p.end === wan1.position || p.end === wan2.position) {
-                         p.start = p.end;
-                         p.end = server.position;
-                         p.progress = 0;
-                    } else {
-                        // If packet reaches server, remove it
-                        scene.remove(p.mesh);
-                        packets.splice(i, 1);
-                    }
-                } else {
-                    p.mesh.position.lerpVectors(p.start, p.end, p.progress);
-                }
-            }
-
-            // Rotate the whole scene for a nice effect
-            scene.rotation.y += delta * 0.1;
-
+            currentDiagram.animate(delta);
             renderer.render(scene, camera);
         }
 
+        // Initial load
+        loadDiagram(diagrams[0].url);
         animate();
 
         // Handle window resize
@@ -133,7 +122,6 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
     </script>
 </body>
 </html>
