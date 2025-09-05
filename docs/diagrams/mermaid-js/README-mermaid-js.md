@@ -190,24 +190,26 @@ journey
 This diagram shows the structure of a `onebox-rs` data packet as it is sent over a WAN link.
 
 ```mermaid
-packet-beta
-    "IP Header" {
-        "Source IP": 16,
-        "Destination IP": 16
-    }
-    "UDP Header" {
-        "Source Port": 8,
-        "Destination Port": 8
-    }
-    "onebox Packet Header" {
-        "PacketType": 4,
-        "ClientId": 12,
-        "SequenceNumber": 16
-    }
-    "Encrypted Payload" {
-        "Original IP Packet": "...",
-        "Authentication Tag": 32
-    }
+graph TD
+    subgraph UDP Datagram
+        subgraph IP Header
+            A["Source IP (16)"]
+            B["Destination IP (16)"]
+        end
+        subgraph UDP Header
+            C["Source Port (8)"]
+            D["Destination Port (8)"]
+        end
+        subgraph onebox Packet Header
+            E["PacketType (4)"]
+            F["ClientId (12)"]
+            G["SequenceNumber (16)"]
+        end
+        subgraph Encrypted Payload
+            H["Original IP Packet (...)"]
+            I["Authentication Tag (32)"]
+        end
+    end
 ```
 
 ## 7. Edge Case Scenarios
