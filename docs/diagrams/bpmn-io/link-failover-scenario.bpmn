@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_LinkFailover" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_LinkFailover">
+    <bpmn:participant id="Participant_Client" name="onebox-client" processRef="Process_Client_Failover" />
+    <bpmn:participant id="Participant_Server" name="onebox-server" processRef="Process_Server_Failover" />
+    <bpmn:messageFlow id="MessageFlow_Probe" sourceRef="Task_SendProbe" targetRef="Task_ReceiveProbe" />
+    <bpmn:messageFlow id="MessageFlow_ProbeAck" sourceRef="Task_SendProbeAck" targetRef="Task_ReceiveProbeAck" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Client_Failover" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Failover" name="Link Active" />
+    <bpmn:task id="Task_SendProbe" name="Send Keep-Alive Probe" />
+    <bpmn:intermediateCatchEvent id="Event_ProbeTimeout" name="Probe Timeout">
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_MarkLinkDown" name="Mark Link as Down" />
+    <bpmn:task id="Task_ReceiveProbeAck" name="Receive Probe ACK" />
+    <bpmn:sequenceFlow id="SequenceFlow_1" sourceRef="StartEvent_Failover" targetRef="Task_SendProbe" />
+    <bpmn:sequenceFlow id="SequenceFlow_2" sourceRef="Task_SendProbe" targetRef="Event_ProbeTimeout" />
+    <bpmn:sequenceFlow id="SequenceFlow_3" sourceRef="Event_ProbeTimeout" targetRef="Task_MarkLinkDown" />
+    <bpmn:sequenceFlow id="SequenceFlow_4" sourceRef="Task_SendProbe" targetRef="Task_ReceiveProbeAck" />
+  </bpmn:process>
+  <bpmn:process id="Process_Server_Failover" isExecutable="false">
+    <bpmn:task id="Task_ReceiveProbe" name="Receive Keep-Alive Probe" />
+    <bpmn:task id="Task_SendProbeAck" name="Send Probe ACK" />
+    <bpmn:sequenceFlow id="SequenceFlow_5" sourceRef="Task_ReceiveProbe" targetRef="Task_SendProbeAck" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_LinkFailover">
+    <bpmndi:BPMNPlane id="BPMNPlane_LinkFailover" bpmnElement="Collaboration_LinkFailover">
+      <bpmndi:BPMNShape id="Participant_Client_Shape" bpmnElement="Participant_Client" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="600" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_Failover_Shape" bpmnElement="StartEvent_Failover">
+        <dc:Bounds x="210" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendProbe_Shape" bpmnElement="Task_SendProbe">
+        <dc:Bounds x="300" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_ProbeTimeout_Shape" bpmnElement="Event_ProbeTimeout">
+        <dc:Bounds x="450" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_MarkLinkDown_Shape" bpmnElement="Task_MarkLinkDown">
+        <dc:Bounds x="540" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReceiveProbeAck_Shape" bpmnElement="Task_ReceiveProbeAck">
+        <dc:Bounds x="300" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1_Edge" bpmnElement="SequenceFlow_1">
+        <di:waypoint x="246" y="200" />
+        <di:waypoint x="300" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_2_Edge" bpmnElement="SequenceFlow_2">
+        <di:waypoint x="400" y="200" />
+        <di:waypoint x="450" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_3_Edge" bpmnElement="SequenceFlow_3">
+        <di:waypoint x="486" y="200" />
+        <di:waypoint x="540" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_4_Edge" bpmnElement="SequenceFlow_4">
+        <di:waypoint x="350" y="240" />
+        <di:waypoint x="350" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_Server_Shape" bpmnElement="Participant_Server" isHorizontal="true">
+        <dc:Bounds x="160" y="400" width="600" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReceiveProbe_Shape" bpmnElement="Task_ReceiveProbe">
+        <dc:Bounds x="300" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendProbeAck_Shape" bpmnElement="Task_SendProbeAck">
+        <dc:Bounds x="460" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_5_Edge" bpmnElement="SequenceFlow_5">
+        <di:waypoint x="400" y="520" />
+        <di:waypoint x="460" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_Probe_Edge" bpmnElement="MessageFlow_Probe">
+        <di:waypoint x="350" y="240" />
+        <di:waypoint x="350" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_ProbeAck_Edge" bpmnElement="MessageFlow_ProbeAck">
+        <di:waypoint x="510" y="480" />
+        <di:waypoint x="350" y="330" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

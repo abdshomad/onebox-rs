@@ -1,0 +1,8 @@
+```mermaid
+stateDiagram-v2
+    [*] --> Unknown
+    Unknown --> Up: Successful Probe
+    Unknown --> Down: 4 Consecutive Probe Failures
+    Up --> Down: 4 Consecutive Probe Failures
+    Down --> Up: Successful Probe
+```

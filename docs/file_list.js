@@ -23,39 +23,49 @@ const fileTree = {
             "type": "file"
         },
         {
-            "name": "bpmn-io",
-            "type": "folder",
-            "children": [
-                {
-                    "name": "main-process.bpmn",
-                    "type": "file"
-                },
-                {
-                    "name": "sub-processes",
-                    "type": "folder",
-                    "children": [
-                        {
-                            "name": "client-process.bpmn",
-                            "type": "file"
-                        },
-                        {
-                            "name": "server-process.bpmn",
-                            "type": "file"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
             "name": "diagrams",
             "type": "folder",
             "children": [
+                {
+                    "name": "bpmn-io",
+                    "type": "folder",
+                    "children": [
+                        {
+                            "name": "main-process.bpmn",
+                            "type": "file"
+                        },
+                        {
+                            "name": "sub-processes",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "client-process.bpmn",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "server-process.bpmn",
+                                    "type": "file"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 {
                     "name": "blockdiag",
                     "type": "folder",
                     "children": [
                         {
                             "name": "process-flow.diag",
+                            "type": "file"
+                        }
+                    ]
+                },
+                {
+                    "name": "graphviz",
+                    "type": "folder",
+                    "children": [
+                        {
+                            "name": "process-flow.dot",
                             "type": "file"
                         }
                     ]
@@ -70,6 +80,124 @@ const fileTree = {
                         },
                         {
                             "name": "index.html",
+                            "type": "file"
+                        }
+                    ]
+                },
+                {
+                    "name": "mermaid-js",
+                    "type": "folder",
+                    "children": [
+                        {
+                            "name": "01-flowcharts",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-client-logic-flow.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "02-server-logic-flow.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "02-sequence-diagrams",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-authentication-handshake.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "02-data-transfer-upstream.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "03-data-transfer-downstream.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "04-link-health-probe.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "03-state-diagrams",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-link-health-state-machine.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "04-class-diagrams",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-config-schema.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "05-user-journey",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-cli-usage-journey.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "06-packet-diagrams",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-packet-structure.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "07-edge-case-scenarios",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-invalid-psk-authentication.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "02-malformed-packet-handling.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "03-link-flapping-scenario.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "04-out-of-order-packet-handling.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "08-architecture-diagrams",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-system-architecture.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "README-mermaid-js.md",
                             "type": "file"
                         }
                     ]
@@ -145,16 +273,6 @@ const fileTree = {
                             "type": "file"
                         }
                     ]
-                }
-            ]
-        },
-        {
-            "name": "graphviz",
-            "type": "folder",
-            "children": [
-                {
-                    "name": "process-flow.dot",
-                    "type": "file"
                 }
             ]
         },

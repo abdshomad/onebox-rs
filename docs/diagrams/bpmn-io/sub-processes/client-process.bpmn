@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_ClientProcess" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="ClientProcess" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_ClientProc" name="Client Initialized" />
+    <bpmn:dataObjectReference id="DataObjectReference_ClientConfig" name="ClientConfig" dataObjectRef="DataObject_ClientConfig" />
+    <bpmn:dataObject id="DataObject_ClientConfig" />
+    <bpmn:task id="Task_DiscoverWAN" name="Discover WAN Interfaces">
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1">
+        <bpmn:targetRef>DataObjectReference_ClientConfig</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Task_MonitorHealth" name="Monitor Link Health" />
+    <bpmn:exclusiveGateway id="Gateway_LinkDown" name="Link Down?" />
+    <bpmn:task id="Task_HandleLinkDown" name="Handle Link Down" />
+    <bpmn:task id="Task_CaptureTraffic" name="Capture Outgoing Traffic" />
+    <bpmn:task id="Task_EncryptPacket" name="Encrypt &amp; Encapsulate Packet" />
+    <bpmn:dataObjectReference id="DataObjectReference_Packet" name="Encapsulated Packet" dataObjectRef="DataObject_Packet" />
+    <bpmn:dataObject id="DataObject_Packet" />
+    <bpmn:task id="Task_DistributePacket" name="Distribute Packet to WAN links">
+      <bpmn:dataInputAssociation id="DataInputAssociation_1">
+        <bpmn:sourceRef>DataObjectReference_Packet</bpmn:sourceRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Task_ReceivePacket" name="Receive &amp; Decrypt Incoming Packet" />
+    <bpmn:task id="Task_WriteToTUN" name="Write Packet to TUN interface" />
+    <bpmn:endEvent id="EndEvent_ClientProc" name="Client Stopped" />
+    <bpmn:sequenceFlow id="SequenceFlow_1" sourceRef="StartEvent_ClientProc" targetRef="Task_DiscoverWAN" />
+    <bpmn:sequenceFlow id="SequenceFlow_2" sourceRef="Task_DiscoverWAN" targetRef="Task_MonitorHealth" />
+    <bpmn:sequenceFlow id="SequenceFlow_3" sourceRef="Task_MonitorHealth" targetRef="Gateway_LinkDown" />
+    <bpmn:sequenceFlow id="SequenceFlow_LinkDown" name="Yes" sourceRef="Gateway_LinkDown" targetRef="Task_HandleLinkDown" />
+    <bpmn:sequenceFlow id="SequenceFlow_LinkOK" name="No" sourceRef="Gateway_LinkDown" targetRef="Task_CaptureTraffic" />
+    <bpmn:sequenceFlow id="SequenceFlow_4" sourceRef="Task_CaptureTraffic" targetRef="Task_EncryptPacket" />
+    <bpmn:sequenceFlow id="SequenceFlow_5" sourceRef="Task_EncryptPacket" targetRef="Task_DistributePacket" />
+    <bpmn:sequenceFlow id="SequenceFlow_6" sourceRef="Task_DistributePacket" targetRef="Task_ReceivePacket" />
+    <bpmn:sequenceFlow id="SequenceFlow_7" sourceRef="Task_ReceivePacket" targetRef="Task_WriteToTUN" />
+    <bpmn:sequenceFlow id="SequenceFlow_8" sourceRef="Task_WriteToTUN" targetRef="EndEvent_ClientProc" />
+    <bpmn:sequenceFlow id="SequenceFlow_9" sourceRef="Task_HandleLinkDown" targetRef="Task_CaptureTraffic" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_ClientProcess">
+    <bpmndi:BPMNPlane id="BPMNPlane_ClientProcess" bpmnElement="ClientProcess">
+      <bpmndi:BPMNShape id="StartEvent_ClientProc_Shape" bpmnElement="StartEvent_ClientProc">
+        <dc:Bounds x="179" y="159" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DiscoverWAN_Shape" bpmnElement="Task_DiscoverWAN">
+        <dc:Bounds x="270" y="137" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_ClientConfig_Shape" bpmnElement="DataObjectReference_ClientConfig">
+        <dc:Bounds x="302" y="255" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="287" y="312" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_1_Edge" bpmnElement="DataOutputAssociation_1">
+        <di:waypoint x="320" y="217" />
+        <di:waypoint x="320" y="255" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Task_MonitorHealth_Shape" bpmnElement="Task_MonitorHealth">
+        <dc:Bounds x="430" y="137" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_LinkDown_Shape" bpmnElement="Gateway_LinkDown" isMarkerVisible="true">
+        <dc:Bounds x="585" y="152" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="583" y="209" width="55" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_HandleLinkDown_Shape" bpmnElement="Task_HandleLinkDown">
+        <dc:Bounds x="560" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CaptureTraffic_Shape" bpmnElement="Task_CaptureTraffic">
+        <dc:Bounds x="700" y="137" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EncryptPacket_Shape" bpmnElement="Task_EncryptPacket">
+        <dc:Bounds x="860" y="137" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DistributePacket_Shape" bpmnElement="Task_DistributePacket">
+        <dc:Bounds x="1020" y="137" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_Packet_Shape" bpmnElement="DataObjectReference_Packet">
+        <dc:Bounds x="952" y="255" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="937" y="312" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataInputAssociation_1_Edge" bpmnElement="DataInputAssociation_1">
+        <di:waypoint x="970" y="255" />
+        <di:waypoint x="970" y="217" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Task_ReceivePacket_Shape" bpmnElement="Task_ReceivePacket">
+        <dc:Bounds x="1180" y="137" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_WriteToTUN_Shape" bpmnElement="Task_WriteToTUN">
+        <dc:Bounds x="1340" y="137" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_ClientProc_Shape" bpmnElement="EndEvent_ClientProc">
+        <dc:Bounds x="1502" y="159" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1_Edge" bpmnElement="SequenceFlow_1">
+        <di:waypoint x="215" y="177" />
+        <di:waypoint x="270" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_2_Edge" bpmnElement="SequenceFlow_2">
+        <di:waypoint x="370" y="177" />
+        <di:waypoint x="430" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_3_Edge" bpmnElement="SequenceFlow_3">
+        <di:waypoint x="530" y="177" />
+        <di:waypoint x="585" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_LinkDown_Edge" bpmnElement="SequenceFlow_LinkDown">
+        <di:waypoint x="610" y="202" />
+        <di:waypoint x="610" y="250" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="618" y="223" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_LinkOK_Edge" bpmnElement="SequenceFlow_LinkOK">
+        <di:waypoint x="635" y="177" />
+        <di:waypoint x="700" y="177" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="662" y="159" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_4_Edge" bpmnElement="SequenceFlow_4">
+        <di:waypoint x="800" y="177" />
+        <di:waypoint x="860" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_5_Edge" bpmnElement="SequenceFlow_5">
+        <di:waypoint x="960" y="177" />
+        <di:waypoint x="1020" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_6_Edge" bpmnElement="SequenceFlow_6">
+        <di:waypoint x="1120" y="177" />
+        <di:waypoint x="1180" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_7_Edge" bpmnElement="SequenceFlow_7">
+        <di:waypoint x="1280" y="177" />
+        <di:waypoint x="1340" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_8_Edge" bpmnElement="SequenceFlow_8">
+        <di:waypoint x="1440" y="177" />
+        <di:waypoint x="1502" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_9_Edge" bpmnElement="SequenceFlow_9">
+        <di:waypoint x="660" y="290" />
+        <di:waypoint x="750" y="290" />
+        <di:waypoint x="750" y="217" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

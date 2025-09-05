@@ -37,14 +37,14 @@ Before running the verification script, you will need to have the following inst
 
 The following is a list of directories that will be visually verified by the script.
 
-- [ ] `bpmn-io`
+- [ ] `diagrams/bpmn-io`
 - [ ] `diagrams/blockdiag`
 - [ ] `diagrams/jointjs`
 - [ ] `diagrams/nomnoml`
 - [ ] `diagrams/plantuml`
 - [ ] `diagrams/threejs`
 - [ ] `diagrams/x6-antv`
-- [ ] `graphviz`
+- [ ] `diagrams/graphviz`
 - [ ] `slides/deckjs`
 - [ ] `slides/flowtimejs`
 - [ ] `slides/impressjs`
