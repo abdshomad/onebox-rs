@@ -53,7 +53,7 @@
 
 ---
 
-## Phase 3: PlantUML Viewer (In Progress)
+## Phase 3: PlantUML Viewer (Completed)
 
 ### Plan
 
@@ -63,11 +63,33 @@
 
 ### Status
 
--   [ ] Research PlantUML rendering libraries
+-   [x] Research PlantUML rendering libraries
+-   [x] Integrate the library
+-   [x] Implement the viewer
+
+### Time
+
+-   **Start Time:** 2025-09-04 17:16:18 UTC
+-   **End Time:** 2025-09-04 17:19:00 UTC
+-   **Elapsed Time:** ~2 minutes 42 seconds
+
+---
+
+## Phase 4: BPMN Viewer (In Progress)
+
+### Plan
+
+1.  **Research BPMN rendering libraries:** Find a suitable JavaScript library to render BPMN diagrams.
+2.  **Integrate the library:** Add the chosen library to `docs/viewer.html`.
+3.  **Implement the viewer:** Update the script to detect `.bpmn` files and use the library to render their content.
+
+### Status
+
+-   [ ] Research BPMN rendering libraries
 -   [ ] Integrate the library
 -   [ ] Implement the viewer
 
 ### Time
 
--   **Start Time:** 2025-09-04 17:14:02 UTC
+-   **Start Time:** 2025-09-04 17:22:42 UTC
 -   **Elapsed Time:** TBD
