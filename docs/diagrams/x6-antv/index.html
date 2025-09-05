@@ -1,137 +1,133 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>X6 AntV Animation - onebox-rs Overview</title>
+    <title>X6 AntV Diagrams - onebox-rs</title>
     <script src="https://unpkg.com/@antv/x6/dist/x6.js"></script>
     <style>
         body {
             font-family: sans-serif;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        #controls {
+            margin-bottom: 20px;
         }
         #container {
             border: 1px solid #ccc;
-            width: 800px;
-            height: 600px;
+            width: 90vw;
+            height: 80vh;
         }
     </style>
 </head>
 <body>
-    <h1>X6 AntV Animation: onebox-rs System Overview</h1>
-    <p>This proof-of-concept demonstrates an animated data flow through the onebox-rs system using the X6 AntV library.</p>
+    <h1>X6 AntV Diagrams for onebox-rs</h1>
+
+    <div id="controls">
+        <label for="diagram-select">Choose a diagram:</label>
+        <select id="diagram-select"></select>
+    </div>
+
     <div id="container"></div>
 
     <script>
         const { Graph } = X6;
 
-        // 1. Create the Graph
+        // 1. Define all diagrams
+        const diagrams = [
+            { name: "System Overview", url: "js/00-system-overview.js" },
+            { name: "Flowchart: Client Logic", url: "js/01-flowcharts-01-client-logic-flow.js" },
+            { name: "Flowchart: Server Logic", url: "js/01-flowcharts-02-server-logic-flow.js" },
+            { name: "Sequence: Auth Handshake", url: "js/02-sequence-diagrams-01-authentication-handshake.js" },
+            { name: "Sequence: Upstream Data Transfer", url: "js/02-sequence-diagrams-02-data-transfer-upstream.js" },
+            { name: "Sequence: Downstream Data Transfer", url: "js/02-sequence-diagrams-03-data-transfer-downstream.js" },
+            { name: "Sequence: Link Health Probe", url: "js/02-sequence-diagrams-04-link-health-probe.js" },
+            { name: "State: Link Health State Machine", url: "js/03-state-diagrams-01-link-health-state-machine.js" },
+            { name: "Class: Config Schema", url: "js/04-class-diagrams-01-config-schema.js" },
+            { name: "Journey: CLI Usage", url: "js/05-user-journey-01-cli-usage-journey.js" },
+            { name: "Packet: Structure", url: "js/06-packet-diagrams-01-packet-structure.js" },
+            { name: "Edge Case: Invalid PSK Auth", url: "js/07-edge-case-scenarios-01-invalid-psk-authentication.js" },
+            { name: "Edge Case: Malformed Packet", url: "js/07-edge-case-scenarios-02-malformed-packet-handling.js" },
+            { name: "Edge Case: Link Flapping", url: "js/07-edge-case-scenarios-03-link-flapping-scenario.js" },
+            { name: "Edge Case: Out-of-Order Packets", url: "js/07-edge-case-scenarios-04-out-of-order-packet-handling.js" },
+            { name: "Architecture: System Context (C4)", url: "js/08-architecture-diagrams-01-system-architecture.js" },
+        ];
+
+        // 2. Initialize the Graph
         const graph = new Graph({
             container: document.getElementById('container'),
             grid: true,
             panning: true,
             mousewheel: true,
-        });
-
-        // 2. Define and add Nodes
-        const client = graph.addNode({
-            x: 50,
-            y: 250,
-            width: 150,
-            height: 80,
-            label: 'onebox-client',
-            attrs: {
-                body: {
-                    fill: '#f9f',
-                    stroke: '#333',
-                    strokeWidth: 2,
-                },
+            // Enable connecting to ports
+            connecting: {
+                snap: true,
+                allowBlank: false,
+                allowLoop: false,
+                highlight: true,
+                connector: 'smooth',
             },
         });
 
-        const server = graph.addNode({
-            x: 600,
-            y: 250,
-            width: 150,
-            height: 80,
-            label: 'onebox-server',
-            attrs: {
-                body: {
-                    fill: '#ccf',
-                    stroke: '#333',
-                    strokeWidth: 2,
-                },
-            },
-        });
+        // 3. Function to render a diagram
+        function renderDiagram(diagramData) {
+            graph.fromJSON(diagramData);
+        }
 
-        const wan1 = graph.addNode({
-            x: 325,
-            y: 100,
-            width: 150,
-            height: 50,
-            label: 'WAN 1 (Ethernet)',
-        });
+        // 4. Function to load a diagram script
+        function loadDiagram(url) {
+            // Clear the graph before loading new data
+            graph.clearCells();
 
-        const wan2 = graph.addNode({
-            x: 325,
-            y: 450,
-            width: 150,
-            height: 50,
-            label: 'WAN 2 (Cellular)',
-        });
-
-        // 3. Define and add Edges
-        const edge1 = graph.addEdge({
-            source: client,
-            target: wan1,
-        });
-
-        const edge2 = graph.addEdge({
-            source: client,
-            target: wan2,
-        });
-
-        const edge3 = graph.addEdge({
-            source: wan1,
-            target: server,
-        });
-
-        const edge4 = graph.addEdge({
-            source: wan2,
-            target: server,
-        });
-
-        // 4. Implement the Animation
-        // Since sendToken is deprecated, we will simulate a flowing effect
-        // by highlighting and unhighlighting the edges.
-        function animateEdge(edge) {
-            const view = graph.findViewByCell(edge);
-            if (view) {
-                view.highlight();
-                setTimeout(() => view.unhighlight(), 500);
+            // Remove the old script tag if it exists
+            const oldScript = document.getElementById('diagram-script');
+            if (oldScript) {
+                oldScript.remove();
             }
+
+            // Create a new script tag
+            const script = document.createElement('script');
+            script.id = 'diagram-script';
+            script.src = url;
+
+            script.onload = () => {
+                // The loaded script should define a global object `window.currentDiagram`
+                if (window.currentDiagram) {
+                    renderDiagram(window.currentDiagram);
+                } else {
+                    console.error('Diagram data not found in ' + url);
+                }
+            };
+
+            script.onerror = () => {
+                console.error('Failed to load diagram from ' + url);
+                // Optionally display an error message in the container
+                graph.drawText('Error: Could not load diagram.', 20, 20);
+            };
+
+            // Append the script to the body to execute it
+            document.body.appendChild(script);
         }
 
-        function animateEdgeWithTool(edge) {
-             graph.removeTool(edge, 'edge-editor');
-             graph.addTool({
-                name: 'edge-editor',
-                args: {
-                  attrs: {
-                    backgroundColor: 'blue',
-                  },
-                },
-              },)
+        // 5. Populate the dropdown menu
+        const select = document.getElementById('diagram-select');
+        diagrams.forEach(d => {
+            const option = document.createElement('option');
+            option.value = d.url;
+            option.textContent = d.name;
+            select.appendChild(option);
+        });
+
+        // 6. Add event listener for dropdown changes
+        select.addEventListener('change', (event) => {
+            loadDiagram(event.target.value);
+        });
+
+        // 7. Load the first diagram by default
+        if (diagrams.length > 0) {
+            loadDiagram(diagrams[0].url);
         }
-
-        // Animate packets flowing from client to server
-        setInterval(() => {
-            animateEdge(edge1);
-            setTimeout(() => animateEdge(edge3), 500);
-        }, 2000);
-
-        setInterval(() => {
-            animateEdge(edge2);
-            setTimeout(() => animateEdge(edge4), 500);
-        }, 3000);
 
     </script>
 </body>
