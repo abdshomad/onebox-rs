@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docs Viewer</title>
+    <script src="https://cjrtnc.leaningtech.com/4.2/loader.js"></script>
+    <script src="https://plantuml.github.io/plantuml-core/plantuml-core.jar.js"></script>
+    <script src="https://unpkg.com/bpmn-js/dist/bpmn-viewer.development.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+        .sidebar h1 {
+            font-size: 1.5em;
+            margin-top: 0;
+        }
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        #menu-container ul {
+            list-style-type: none;
+            padding-left: 15px;
+        }
+        #menu-container li {
+            padding: 5px 0;
+        }
+        .folder {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .file {
+            cursor: pointer;
+            color: #007bff;
+        }
+        .file:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h1>Docs Menu</h1>
+        <div id="menu-container"></div>
+    </div>
+    <div class="content" id="content-container">
+        <h2>Welcome</h2>
+        <p>Select a file from the menu to view its content.</p>
+    </div>
+
+    <script src="file_list.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.min.js"></script>
+    <script>
+        const menuContainer = document.getElementById('menu-container');
+        const contentContainer = document.getElementById('content-container');
+
+        cheerpjInit();
+
+        async function loadFileContent(path) {
+            try {
+                const response = await fetch(path);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const content = await response.text();
+                return content;
+            } catch (error) {
+                console.error('Error loading file:', error);
+                return 'Error loading file content.';
+            }
+        }
+
+        function createMenu(fileTree, path = '') {
+            const ul = document.createElement('ul');
+
+            for (const item of fileTree.children) {
+                const li = document.createElement('li');
+                const currentPath = path ? `${path}/${item.name}` : item.name;
+
+                if (item.type === 'folder') {
+                    li.className = 'folder';
+                    li.textContent = '📁 ' + item.name;
+                    const childrenUl = createMenu(item, currentPath);
+                    childrenUl.style.display = 'none';
+                    li.appendChild(childrenUl);
+                    li.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        childrenUl.style.display = childrenUl.style.display === 'none' ? 'block' : 'none';
+                    });
+                } else {
+                    li.className = 'file';
+                    li.textContent = '📄 ' + item.name;
+                    li.dataset.path = currentPath;
+                    li.addEventListener('click', async (event) => {
+                        event.stopPropagation();
+                        contentContainer.innerHTML = `<h2>Loading ${item.name}...</h2>`;
+                        const content = await loadFileContent(currentPath);
+                        if (item.name.endsWith('.html') && item.name !== 'viewer.html') {
+                            contentContainer.innerHTML = '';
+                            const iframe = document.createElement('iframe');
+                            iframe.style.width = '100%';
+                            iframe.style.height = '100%';
+                            iframe.style.border = 'none';
+                            iframe.src = currentPath;
+                            contentContainer.appendChild(iframe);
+                        } else if (item.name.endsWith('.bpmn')) {
+                            contentContainer.innerHTML = '';
+                            const bpmnContainer = document.createElement('div');
+                            bpmnContainer.style.height = '100%';
+                            contentContainer.appendChild(bpmnContainer);
+                            const viewer = new BpmnJS({ container: bpmnContainer });
+                            try {
+                                await viewer.importXML(content);
+                                viewer.get('canvas').zoom('fit-viewport');
+                            } catch (err) {
+                                console.error('Error rendering BPMN:', err);
+                                contentContainer.innerHTML = '<h2>Error rendering BPMN diagram</h2><p>Check the console for details.</p>';
+                            }
+                        } else if (item.name.endsWith('.puml')) {
+                            contentContainer.innerHTML = '<h2>Generating PlantUML diagram...</h2>';
+                            try {
+                                const svg = await plantuml.convertToSvg(content);
+                                contentContainer.innerHTML = svg;
+                            } catch (error) {
+                                console.error('Error rendering PlantUML:', error);
+                                contentContainer.innerHTML = '<h2>Error rendering PlantUML diagram</h2><p>Check the console for details.</p>';
+                            }
+                        } else if (item.name.endsWith('.md')) {
+                            contentContainer.innerHTML = marked.parse(content);
+                        } else {
+                            const pre = document.createElement('pre');
+                            pre.textContent = content;
+                            contentContainer.innerHTML = '';
+                            contentContainer.appendChild(pre);
+                        }
+                    });
+                }
+                ul.appendChild(li);
+            }
+            return ul;
+        }
+
+        const menu = createMenu(fileTree, '.');
+        menuContainer.appendChild(menu);
+    </script>
+</body>
+</html>
