@@ -6,6 +6,7 @@
     <title>Docs Viewer</title>
     <script src="https://cjrtnc.leaningtech.com/4.2/loader.js"></script>
     <script src="https://plantuml.github.io/plantuml-core/plantuml-core.jar.js"></script>
+    <script src="https://unpkg.com/bpmn-js/dist/bpmn-viewer.development.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -106,7 +107,20 @@
                         event.stopPropagation();
                         contentContainer.innerHTML = `<h2>Loading ${item.name}...</h2>`;
                         const content = await loadFileContent(currentPath);
-                        if (item.name.endsWith('.puml')) {
+                        if (item.name.endsWith('.bpmn')) {
+                            contentContainer.innerHTML = '';
+                            const bpmnContainer = document.createElement('div');
+                            bpmnContainer.style.height = '100%';
+                            contentContainer.appendChild(bpmnContainer);
+                            const viewer = new BpmnJS({ container: bpmnContainer });
+                            try {
+                                await viewer.importXML(content);
+                                viewer.get('canvas').zoom('fit-viewport');
+                            } catch (err) {
+                                console.error('Error rendering BPMN:', err);
+                                contentContainer.innerHTML = '<h2>Error rendering BPMN diagram</h2><p>Check the console for details.</p>';
+                            }
+                        } else if (item.name.endsWith('.puml')) {
                             contentContainer.innerHTML = '<h2>Generating PlantUML diagram...</h2>';
                             try {
                                 const svg = await plantuml.convertToSvg(content);
