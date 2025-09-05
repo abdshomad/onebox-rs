@@ -75,7 +75,7 @@
 
 ---
 
-## Phase 4: BPMN Viewer (In Progress)
+## Phase 4: BPMN Viewer (Completed)
 
 ### Plan
 
@@ -85,11 +85,31 @@
 
 ### Status
 
--   [ ] Research BPMN rendering libraries
--   [ ] Integrate the library
--   [ ] Implement the viewer
+-   [x] Research BPMN rendering libraries
+-   [x] Integrate the library
+-   [x] Implement the viewer
 
 ### Time
 
--   **Start Time:** 2025-09-04 17:22:42 UTC
+-   **Start Time:** 2025-09-04 17:27:22 UTC
+-   **End Time:** 2025-09-04 17:29:09 UTC
+-   **Elapsed Time:** ~1 minute 47 seconds
+
+---
+
+## Phase 5: HTML iframe Viewer (In Progress)
+
+### Plan
+
+1.  **Implement iframe viewer:** Update the script to detect `.html` files and render them in an `<iframe>`.
+2.  **Style the iframe:** Ensure the iframe is styled correctly to fit the content pane.
+
+### Status
+
+-   [ ] Implement iframe viewer
+-   [ ] Style the iframe
+
+### Time
+
+-   **Start Time:** 2025-09-04 17:32:34 UTC
 -   **Elapsed Time:** TBD

@@ -12,12 +12,19 @@ def path_to_dict(path):
         d['type'] = 'file'
     return d
 
+# Files to ignore in the root of the docs directory
+ignore_list = ['viewer.html', 'file_list.js', 'README.md']
+
 # Create a representation of the docs directory, but start from its contents
 docs_root = 'docs'
 docs_structure = {
     'name': docs_root,
     'type': 'folder',
-    'children': [path_to_dict(os.path.join(docs_root, x)) for x in sorted(os.listdir(docs_root))]
+    'children': [
+        path_to_dict(os.path.join(docs_root, x))
+        for x in sorted(os.listdir(docs_root))
+        if x not in ignore_list
+    ]
 }
 
 

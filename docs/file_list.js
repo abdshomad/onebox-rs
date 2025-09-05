@@ -447,10 +447,6 @@ const fileTree = {
                     ]
                 }
             ]
-        },
-        {
-            "name": "viewer.html",
-            "type": "file"
         }
     ]
 };

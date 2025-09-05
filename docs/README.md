@@ -22,4 +22,4 @@ This directory contains a simple web UI to view all the documentation files.
 3.  **Open the viewer in your browser:**
     Open your web browser and navigate to [http://localhost:8000/viewer.html](http://localhost:8000/viewer.html).
 
-You should see a list of all the files and folders in the `docs` directory. You can click on folders to expand them and click on files to open them in a new tab.
+You should see a list of all the files and folders in the `docs` directory. You can click on folders to expand them and click on files to view their content in the right-hand pane.
