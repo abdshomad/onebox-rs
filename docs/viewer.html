@@ -107,7 +107,15 @@
                         event.stopPropagation();
                         contentContainer.innerHTML = `<h2>Loading ${item.name}...</h2>`;
                         const content = await loadFileContent(currentPath);
-                        if (item.name.endsWith('.bpmn')) {
+                        if (item.name.endsWith('.html') && item.name !== 'viewer.html') {
+                            contentContainer.innerHTML = '';
+                            const iframe = document.createElement('iframe');
+                            iframe.style.width = '100%';
+                            iframe.style.height = '100%';
+                            iframe.style.border = 'none';
+                            iframe.src = currentPath;
+                            contentContainer.appendChild(iframe);
+                        } else if (item.name.endsWith('.bpmn')) {
                             contentContainer.innerHTML = '';
                             const bpmnContainer = document.createElement('div');
                             bpmnContainer.style.height = '100%';
