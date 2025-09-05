@@ -155,7 +155,49 @@ const fileTree = {
                             ]
                         },
                         {
-                            "name": "README-mermaidjs.md",
+                            "name": "06-packet-diagrams",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-packet-structure.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "07-edge-case-scenarios",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-invalid-psk-authentication.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "02-malformed-packet-handling.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "03-link-flapping-scenario.md",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "04-out-of-order-packet-handling.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "08-architecture-diagrams",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "01-system-architecture.md",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "README-mermaid-js.md",
                             "type": "file"
                         }
                     ]

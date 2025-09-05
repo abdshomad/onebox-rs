@@ -182,3 +182,120 @@ journey
       Stop Client: 3: User
       Stop Server: 2: User
 ```
+
+## 6. Packet Diagram
+
+### 6.1. Packet Structure
+
+This diagram shows the structure of a `onebox-rs` data packet as it is sent over a WAN link.
+
+```mermaid
+packet-beta
+    "UDP Datagram" {
+        "IP Header" {
+            "Source IP": 16,
+            "Destination IP": 16
+        }
+        "UDP Header" {
+            "Source Port": 8,
+            "Destination Port": 8
+        }
+        "onebox Packet Header" {
+            "PacketType": 4,
+            "ClientId": 12,
+            "SequenceNumber": 16
+        }
+        "Encrypted Payload" {
+            "Original IP Packet": "...",
+            "Authentication Tag": 32
+        }
+    }
+```
+
+## 7. Edge Case Scenarios
+
+These sequence diagrams illustrate how the system is expected to handle various edge cases and non-nominal conditions.
+
+### 7.1. Invalid PSK Authentication
+
+This diagram shows the server rejecting a client that provides an invalid Pre-Shared Key (PSK).
+
+```mermaid
+sequenceDiagram
+    participant C as onebox-client
+    participant S as onebox-server
+    C->>S: AuthRequest(Invalid PSK)
+    S->>S: Verify PSK
+    S-->>C: AuthResponse(Failure)
+    note over C,S: Server rejects connection
+```
+
+### 7.2. Malformed Packet Handling
+
+This diagram shows the server's behavior when it receives a malformed or undecipherable packet.
+
+```mermaid
+sequenceDiagram
+    participant C as onebox-client
+    participant S as onebox-server
+    C->>S: Malformed Packet
+    S->>S: Attempt to Decrypt/Parse
+    note over S: Silently drop packet
+```
+
+### 7.3. Link Flapping Scenario
+
+This diagram illustrates how the client handles a "flapping" WAN link that is rapidly changing its state between up and down.
+
+```mermaid
+sequenceDiagram
+    participant C as onebox-client
+    participant S as onebox-server
+    loop Link is flapping
+        C->>S: Health Probe
+        S-->>C: Probe ACK
+        note over C: Mark Link Up
+        C->>S: Health Probe
+        note over C: Probe Timeout
+        note over C: Mark Link Down
+    end
+```
+
+### 7.4. Out-of-Order Packet Handling
+
+This diagram shows how the server's jitter buffer handles packets that arrive out of order from different WAN links.
+
+```mermaid
+sequenceDiagram
+    participant C as onebox-client
+    participant S as onebox-server
+    C->>S: Packet (Seq=3)
+    C->>S: Packet (Seq=1)
+    C->>S: Packet (Seq=2)
+    S->>S: Add packets to Jitter Buffer
+    S->>S: Reorder packets
+    S->>S: Process Packet (Seq=1)
+    S->>S: Process Packet (Seq=2)
+    S->>S: Process Packet (Seq=3)
+```
+
+## 8. Architecture Diagram
+
+### 8.1. System Context (C4)
+
+This C4 diagram shows the high-level system context for the `onebox-rs` application.
+
+```mermaid
+C4Context
+  title System Context diagram for onebox-rs
+  Enterprise_Boundary(b, "onebox-rs System") {
+    System(client, "onebox-client", "Intercepts traffic and distributes it across multiple WAN links")
+    System(server, "onebox-server", "Receives traffic, reassembles it, and forwards it to the internet")
+    Rel(client, server, "Sends encrypted packets over UDP")
+  }
+  System_Ext(user, "User", "A user of the onebox-rs system")
+  System_Ext(internet, "Internet", "The public internet")
+
+  Rel(user, client, "Uses the bonded internet connection")
+  Rel(server, internet, "Forwards traffic to")
+```
