@@ -31,7 +31,7 @@
 
 ---
 
-## Phase 2: UI Overhaul and File Viewers (In Progress)
+## Phase 2: UI Overhaul and File Viewers (Completed)
 
 ### Plan
 
@@ -41,11 +41,33 @@
 
 ### Status
 
--   [ ] Redesign the UI with Menus
--   [ ] Create a Content Pane
--   [ ] Implement a Markdown Viewer
+-   [x] Redesign the UI with Menus
+-   [x] Create a Content Pane
+-   [x] Implement a Markdown Viewer
 
 ### Time
 
--   **Start Time:** 2025-09-04 17:05:22 UTC
+-   **Start Time:** 2025-09-04 17:08:06 UTC
+-   **End Time:** 2025-09-04 17:09:39 UTC
+-   **Elapsed Time:** ~1 minute 33 seconds
+
+---
+
+## Phase 3: PlantUML Viewer (In Progress)
+
+### Plan
+
+1.  **Research PlantUML rendering libraries:** Find a suitable JavaScript library to render PlantUML diagrams in the browser.
+2.  **Integrate the library:** Add the chosen library to `docs/viewer.html`.
+3.  **Implement the viewer:** Update the script to detect `.puml` files and use the library to render their content in the content pane.
+
+### Status
+
+-   [ ] Research PlantUML rendering libraries
+-   [ ] Integrate the library
+-   [ ] Implement the viewer
+
+### Time
+
+-   **Start Time:** 2025-09-04 17:14:02 UTC
 -   **Elapsed Time:** TBD
