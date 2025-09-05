@@ -84,43 +84,58 @@ EncryptedPayload *-- AuthTag
 @startuml
 !theme plain
 
-title Client Application Logic Flow
+title Client Application Logic Flow (Enhanced)
 
 start
 :Start onebox-client;
 :Parse CLI Arguments;
-:Load config.toml;
-:Discover WAN Interfaces & Bind Sockets;
-:Create Virtual TUN Device;
-:Set System Default Route to TUN Device;
-:Perform Handshake with Server;
-
-fork
-  partition "Data Plane (Upstream)" {
-    while (true)
-      :Read IP Packet from TUN;
-      :Encrypt Packet;
-      :Select WAN link (Round-Robin);
-      :Send Encrypted Packet over chosen WAN Socket;
-    endwhile
-  }
-fork again
-  partition "Data Plane (Downstream)" {
-    while (true)
-      :Receive Encrypted Packet from any WAN Socket;
-      :Decrypt Packet;
-      :Write IP Packet to TUN;
-    endwhile
-  }
-fork again
-  partition "Control Plane (Health Probers)" {
-    :Periodically send probe packets;
-  }
-fork again
-  partition "Control Plane (Status Socket)" {
-    :Listen for status requests;
-  }
-end fork
+if (Load config.toml) then (Success)
+  :Discover WAN Interfaces & Bind Sockets;
+  if (Create Virtual TUN Device) then (Success)
+    :Set System Default Route to TUN Device;
+    if (Perform Handshake with Server) then (Success)
+      fork
+        partition "Data Plane (Upstream)" {
+          while (true)
+            :Read IP Packet from TUN;
+            :Add to send queue;
+            :Encrypt Packet;
+            :Select WAN link (Round-Robin);
+            :Send Encrypted Packet over chosen WAN Socket;
+          endwhile
+        }
+      fork again
+        partition "Data Plane (Downstream)" {
+          while (true)
+            :Receive Encrypted Packet from any WAN Socket;
+            :Decrypt Packet;
+            :Write IP Packet to TUN;
+          endwhile
+        }
+      fork again
+        partition "Control Plane (Health Probers)" {
+          :Periodically send probe packets;
+          note right
+            See [[client-health-check-subflow.puml]]
+          end note
+        }
+      fork again
+        partition "Control Plane (Status Socket)" {
+          :Listen for status requests;
+        }
+      end fork
+    else (Failure)
+      :Log Handshake Error;
+      stop
+    endif
+  else (Failure)
+    :Log TUN Device Error;
+    stop
+  endif
+else (Failure)
+  :Log Config Error;
+  stop
+endif
 
 stop
 
@@ -133,49 +148,47 @@ stop
 @startuml
 !theme plain
 
-title Server Application Logic Flow
+title Server Application Logic Flow (Enhanced)
 
 start
 :Start onebox-server;
-:Parse CLI & Load Config;
-:Create TUN Device, Setup IP Forwarding & NAT;
-:Bind Public UDP Socket;
-
-fork
-  partition "Dispatcher" {
-    while (true)
-      :Listens on Public UDP Socket;
-      :Receives all incoming packets;
-      :Forwards packet to Worker Pool via channel;
-    endwhile
-  }
-fork again
-  partition "Worker Pool" {
-    while (true)
-      :Receives packet from channel;
-      :Deserialize Header & Decrypt;
-      if (Packet Type?) then (AuthRequest)
-        :Authenticate Client;
-        :Send AuthResponse;
-      elseif (Probe)
-        :Echo Probe back to Client;
-      elseif (Data)
-        :Add to client's Jitter Buffer;
-        :Drain Jitter Buffer in order;
-        :Write reordered packet to TUN;
-      endif
-    endwhile
-  }
-fork again
-  partition "Downstream (TUN to UDP)" {
-    while (true)
-      :Read IP packet from TUN;
-      :Find corresponding client;
-      :Encrypt packet;
-      :Send to client over UDP;
-    endwhile
-  }
-end fork
+if (Parse CLI & Load Config) then (Success)
+  if (Create TUN Device, Setup IP Forwarding & NAT) then (Success)
+    if (Bind Public UDP Socket) then (Success)
+      fork
+        partition "Dispatcher" {
+          while (true)
+            :Listens on Public UDP Socket;
+            :Receives all incoming packets;
+            :Forwards packet to Worker Pool via channel;
+          endwhile
+        }
+      fork again
+        partition "Worker Pool" {
+          :See [[server-packet-processing-subflow.puml]];
+        }
+      fork again
+        partition "Downstream (TUN to UDP)" {
+          while (true)
+            :Read IP packet from TUN;
+            :Find corresponding client;
+            :Encrypt packet;
+            :Send to client over UDP;
+          endwhile
+        }
+      end fork
+    else (Failure)
+      :Log Socket Bind Error;
+      stop
+    endif
+  else (Failure)
+    :Log TUN/NAT Error;
+    stop
+  endif
+else (Failure)
+  :Log Config Error;
+  stop
+endif
 
 stop
 

@@ -1,0 +1,23 @@
+@startuml
+!theme plain
+
+title Server Packet Processing Sub-Flow (Worker Pool)
+
+start
+:Receives packet from Dispatcher channel;
+:Deserialize Header & Decrypt;
+if (Packet Type?) then (AuthRequest)
+  :Authenticate Client;
+  :Send AuthResponse;
+elseif (Probe)
+  :Echo Probe back to Client;
+elseif (Data)
+  :Add to client's Jitter Buffer;
+  if (Jitter Buffer is ready to drain?) then (Yes)
+    :Drain Jitter Buffer in order;
+    :Write reordered packet to TUN;
+  endif
+endif
+stop
+
+@enduml

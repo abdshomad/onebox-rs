@@ -1,0 +1,26 @@
+@startuml
+!theme plain
+
+title Client Health Check Sub-Flow
+
+start
+:For each WAN link;
+fork
+  :Send Keep-Alive Probe;
+  :Start Probe Timer;
+fork again
+  :Wait for Probe ACK;
+end fork
+if (Probe ACK Received?) then (Yes)
+  :Reset Consecutive Failures Counter;
+  :Update Link Latency;
+else (No, Timer Expires)
+  :Increment Consecutive Failures Counter;
+  if (Failures > Threshold?) then (Yes)
+    :Mark Link as Down;
+    note right: See Link Health State Machine
+  endif
+endif
+stop
+
+@enduml
