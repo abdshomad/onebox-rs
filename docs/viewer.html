@@ -48,6 +48,11 @@
         .file:hover {
             text-decoration: underline;
         }
+        .file-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -110,9 +115,7 @@
                         if (item.name.endsWith('.html') && item.name !== 'viewer.html') {
                             contentContainer.innerHTML = '';
                             const iframe = document.createElement('iframe');
-                            iframe.style.width = '100%';
-                            iframe.style.height = '100%';
-                            iframe.style.border = 'none';
+                            iframe.className = 'file-iframe';
                             iframe.src = currentPath;
                             contentContainer.appendChild(iframe);
                         } else if (item.name.endsWith('.bpmn')) {

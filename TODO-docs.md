@@ -97,7 +97,7 @@
 
 ---
 
-## Phase 5: HTML iframe Viewer (In Progress)
+## Phase 5: HTML iframe Viewer (Completed)
 
 ### Plan
 
@@ -106,10 +106,11 @@
 
 ### Status
 
--   [ ] Implement iframe viewer
--   [ ] Style the iframe
+-   [x] Implement iframe viewer
+-   [x] Style the iframe
 
 ### Time
 
 -   **Start Time:** 2025-09-04 17:32:34 UTC
--   **Elapsed Time:** TBD
+-   **End Time:** 2025-09-04 18:01:00 UTC
+-   **Elapsed Time:** ~28 minutes 26 seconds
