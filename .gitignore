@@ -89,3 +89,10 @@ docker-compose.override.yml
 # Local development files
 local/
 dev/
+
+# Visual verifier files
+visual_verifier/
+screenshots/
+geckodriver
+firefox/
+*.archive
