@@ -3,7 +3,7 @@ members = [
     "onebox-core",
     "onebox-client",
     "onebox-server"
-]
+, "docs/slides/spectacle/visual_verifier"]
 resolver = "2"
 
 [workspace.dependencies]
