@@ -17,12 +17,11 @@ These Markdown files form the foundation of the project's documentation, coverin
 
 The project's architecture and logic are documented using a variety of diagramming tools and formats, offering multiple perspectives on the system's design.
 
-*   **`bpmn-io/`**: Contains Business Process Model and Notation (BPMN) diagrams that illustrate the high-level interaction between the client and server, as well as the detailed processes for each. These are excellent for understanding the system's workflow from a business process perspective.
 *   **`diagrams/`**: This directory is a showcase of different diagramming technologies:
+    *   **`bpmn-io/`**: Contains Business Process Model and Notation (BPMN) diagrams that illustrate the high-level interaction between the client and server, as well as the detailed processes for each. These are excellent for understanding the system's workflow from a business process perspective.
     *   **`blockdiag/`**, **`nomnoml/`**, and **`graphviz/`**: These directories contain textual representations of the process flow using their respective diagram-as-code syntaxes. They are concise, easy to version control, and provide a clear, high-level overview of the system's logic.
     *   **`plantuml/`**: This is the most comprehensive set of diagrams, covering system architecture, packet structure, application logic flows, state machines, and configuration schemas. The PlantUML diagrams are an outstanding example of thorough technical documentation.
     *   **`jointjs/`**, **`threejs/`**, and **`x6-antv/`**: These directories contain animated, interactive diagrams of the system overview. The JointJS and X6 AntV diagrams are 2D, while the three.js diagram is a 3D visualization. These are highly creative and effective for demonstrating the system's dynamic behavior.
-*   **`graphviz/`**: Contains a DOT file for generating a process flow diagram with Graphviz.
 
 ## 3. Presentation Decks
 

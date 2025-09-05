@@ -23,39 +23,49 @@ const fileTree = {
             "type": "file"
         },
         {
-            "name": "bpmn-io",
-            "type": "folder",
-            "children": [
-                {
-                    "name": "main-process.bpmn",
-                    "type": "file"
-                },
-                {
-                    "name": "sub-processes",
-                    "type": "folder",
-                    "children": [
-                        {
-                            "name": "client-process.bpmn",
-                            "type": "file"
-                        },
-                        {
-                            "name": "server-process.bpmn",
-                            "type": "file"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
             "name": "diagrams",
             "type": "folder",
             "children": [
+                {
+                    "name": "bpmn-io",
+                    "type": "folder",
+                    "children": [
+                        {
+                            "name": "main-process.bpmn",
+                            "type": "file"
+                        },
+                        {
+                            "name": "sub-processes",
+                            "type": "folder",
+                            "children": [
+                                {
+                                    "name": "client-process.bpmn",
+                                    "type": "file"
+                                },
+                                {
+                                    "name": "server-process.bpmn",
+                                    "type": "file"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 {
                     "name": "blockdiag",
                     "type": "folder",
                     "children": [
                         {
                             "name": "process-flow.diag",
+                            "type": "file"
+                        }
+                    ]
+                },
+                {
+                    "name": "graphviz",
+                    "type": "folder",
+                    "children": [
+                        {
+                            "name": "process-flow.dot",
                             "type": "file"
                         }
                     ]
@@ -145,16 +155,6 @@ const fileTree = {
                             "type": "file"
                         }
                     ]
-                }
-            ]
-        },
-        {
-            "name": "graphviz",
-            "type": "folder",
-            "children": [
-                {
-                    "name": "process-flow.dot",
-                    "type": "file"
                 }
             ]
         },
