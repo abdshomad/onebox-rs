@@ -116,7 +116,7 @@ if (Load config.toml) then (Success)
         partition "Control Plane (Health Probers)" {
           :Periodically send probe packets;
           note right
-            See [[client-health-check-subflow.puml]]
+            See [[03a-client-health-check-subflow.puml]]
           end note
         }
       fork again
@@ -165,7 +165,7 @@ if (Parse CLI & Load Config) then (Success)
         }
       fork again
         partition "Worker Pool" {
-          :See [[server-packet-processing-subflow.puml]];
+          :See [[04a-server-packet-processing-subflow.puml]];
         }
       fork again
         partition "Downstream (TUN to UDP)" {
